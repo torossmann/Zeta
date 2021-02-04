@@ -1,7 +1,7 @@
 #
 # Zeta.
 #
-# Copyright 2014, 2015, 2016, 2017, 2019 Tobias Rossmann.
+# Copyright 2014, 2015, 2016, 2017, 2019, 2021 Tobias Rossmann.
 #
 # This package is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -17,40 +17,41 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.4'
-__date__ = 'August 2019'
+__version__ = '0.4.1'
+__date__ = 'February 2021'
 
-print 'Loading...'
+print('Loading...')
 
-import common
+from . import common
 
-import addmany
+from . import addmany
 
-import examples
-from subobjects import SubobjectZetaProcessor
-from reps import RepresentationProcessor
+from . import examples
+from .subobjects import SubobjectZetaProcessor
+from .reps import RepresentationProcessor
 
-from ask import AskProcessor
-from cico import CicoProcessor, IncidenceProcessor
+from .ask import AskProcessor
+from .cico import CicoProcessor, IncidenceProcessor
 
-from algebra import Algebra, Subalgebra
-from abstract import ReductionError
-from toric import ToricDatum
-from util import create_logger, E
-from common import symbolic_count_varieties
+from .algebra import Algebra, Subalgebra
+from .abstract import ReductionError
+from .toric import ToricDatum
+from .util import create_logger, E
+from .common import symbolic_count_varieties
 
-import surf, smurf
-import abstract
-import subobjects
-import reps
-import ask
-import util
-import cycrat
-import triangulate
+from . import surf
+from . import smurf
+from . import abstract
+from . import subobjects
+from . import reps
+from . import ask
+from . import util
+from . import cycrat
+from . import triangulate
 
-from laurent import LaurentPolynomial
+from .laurent import LaurentPolynomial
 
-from subobjects import Strategy
+from .subobjects import Strategy
 
 from sage.all import Infinity, var, Matrix, Graph
 import sage
@@ -61,7 +62,7 @@ common.VERSION = __version__
 
 logger = create_logger(__name__)
 
-from reps import IgusaProcessor
+from .reps import IgusaProcessor
 
 # The following is supposed to detect a bug which is present (at least)
 # in version 7.5.1 and 7.6 of Sage.
@@ -226,7 +227,7 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
         proc = AskProcessor(util.matlist_to_mat(util.basis_of_matrix_algebra(L, product='Lie')), mode=mode)
     elif objects == 'cc':
         if not L.is_Lie() and not L.is_nilpotent():
-            logger.warn('not a nilpotent Lie algebra')
+            logger.warning('not a nilpotent Lie algebra')
             # raise ValueError('need a nilpotent Lie algebra in order to enumerate conjugacy classes')
         proc = AskProcessor(util.matlist_to_mat(L._adjoint_representation()), mode=mode)
     else:
@@ -238,7 +239,7 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
         logger.info('Picked a basis.')
 
     if verbose:
-        print proc
+        print(proc)
 
     try:
         if type == 'p-adic':
@@ -271,11 +272,12 @@ def do(type, L, objects='subalgebras', filename=None, save_memory=None, symbolic
     D.update(kwargs)
     Z = zeta_function(type, L, objects, **D)
     if filename is True:
-        if not isinstance(L, basestring):
+        if not isinstance(L, str):
             raise ValueError
         filename = objects + '-' + L + '.' + {'p-adic': 'pad', 'topological': 'top'}[type]
     if filename:
-        with open(filename, 'w') as f: f.write(str(Z))
+        with open(filename, 'w') as f:
+            f.write(str(Z))
     return Z
 
 topological_zeta_function = partial(do, 'topological', strategy=Strategy.NORMAL, verbose=False)
@@ -293,18 +295,19 @@ def check(name, objects='subalgebras', type='p-adic', **kwargs):
     Z = do(type, L, objects, **kwargs)
    
     if Z != W:
-        print 'Computed: ', Z
-        print 'Database: ', W
+        print('Computed: ', Z)
+        print('Database: ', W)
         raise RuntimeError('computed zeta function of %s differs from entry in the database' % name)
 
-    print
-    print 'Algebra #%d' % lookup(name,'id')
-    print 'Names: %s' % ', '.join(lookup(name,'names'))
-    print 'Objects:', objects
-    print 'Type:', type
-    print 'Zeta:', Z
-    print 'Confirmed.'
+    print()
+    print('Algebra #%d' % lookup(name,'id'))
+    print('Names: %s' % ', '.join(lookup(name,'names')))
+    print('Objects:', objects)
+    print('Type:', type)
+    print('Zeta:', Z)
+    print('Confirmed.')
     return True
+
 
 def checkall(objects='reps', type='p-adic', **kwargs):
     ids = []
@@ -314,22 +317,23 @@ def checkall(objects='reps', type='p-adic', **kwargs):
             check(i, objects, type, **kwargs)
             ids.append(i)
 
-    print
-    print 'Objects:', objects
-    print 'Type:', type
-    print 'Confirmed zeta functions for the following algebras:'
+    print()
+    print('Objects:', objects)
+    print('Type:', type)
+    print('Confirmed zeta functions for the following algebras:')
 
     for i in ids:
-        print '#%d:\t%s' % (i, ', '.join(lookup(i, 'names')))
-    print 'Total number:', len(ids)
-    
+        print('#%d:\t%s' % (i, ', '.join(lookup(i, 'names'))))
+    print('Total number:', len(ids))
+
+
 if not common.normaliz:
-    logger.warn('Normaliz not found. Triangulation will be slow.')
+    logger.warning('Normaliz not found. Triangulation will be slow.')
 if not common.libcrunch:
-    logger.warn('The C extension could not be loaded. Computations of topological zeta functions will use the slower Python implementation.')
+    logger.warning('The C extension could not be loaded. Computations of topological zeta functions will use the slower Python implementation.')
 if not common.count:
-    logger.warn('LattE/count not found. Computations of p-adic zeta functions are unavailable.')
-    
+    logger.warning('LattE/count not found. Computations of p-adic zeta functions are unavailable.')
+
 if __SERIES_BUG:
     logger.critical(
             """This version of Sage may compute incorrect symbolic power series
@@ -363,4 +367,4 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 """ % ('{:>77}'.format('VERSION ' + __version__),
        '{:>77}'.format('Released: ' + __date__))
 
-print banner()
+print(banner())

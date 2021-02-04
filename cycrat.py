@@ -7,21 +7,22 @@ import itertools
 
 from collections import Counter
 
-from tmplist import TemporaryList
+from .tmplist import TemporaryList
 
-from util import monomial_exp, monomial_log, evaluate_polynomial, unzip, split_vector, common_overring
+from .util import monomial_exp, monomial_log, evaluate_polynomial, unzip, split_vector, common_overring
 
-from util import create_logger
+from .util import create_logger
 logger = create_logger(__name__)
-        
+
+
 class CyclotomicRationalFunction:
     """A cyclotomic rational function is an expression
     Q = f * X^alpha[0]/prod(1-X^alpha[i], i=1,..,k), where alpha[i] in ZZ^n
     and f is a polynomial in X = [X[0], ...].
     """
 
-    __slots__ = [ 'polynomial', 'ring', 'variables', 'nvars', 'exponents',
-                  '_known_to_be_normalised', '_known_to_be_reduced' ]
+    __slots__ = ['polynomial', 'ring', 'variables', 'nvars', 'exponents',
+                 '_known_to_be_normalised', '_known_to_be_reduced']
 
     def __init__(self, polynomial, exponents=None,
                  known_to_be_normalised=False,
@@ -39,7 +40,7 @@ class CyclotomicRationalFunction:
             self.exponents = [zero_vector(ZZ, self.nvars)]
             known_to_be_normalised = True
         else:
-            self.exponents = [vector(ZZ,e) for e in exponents]
+            self.exponents = [vector(ZZ, e) for e in exponents]
 
         self.exponents = [self.exponents[0]] + sorted(self.exponents[1:])
 
@@ -91,7 +92,7 @@ class CyclotomicRationalFunction:
         else:
             coerc = lambda x: x
 
-        exp = lambda v: prod(variables[i] ** v[i] for i in xrange(self.nvars))
+        exp = lambda v: prod(variables[i] ** v[i] for i in range(self.nvars))
         return coerc(
             evaluate_polynomial(self.polynomial, variables) *
             exp(self.exponents[0]) / prod(1-exp(e) for e in self.exponents[1:])
@@ -107,7 +108,7 @@ class CyclotomicRationalFunction:
             raise ValueError('polynomial is not a non-zero constant')
 
         R = self.ring
-        exp = lambda v: R.prod(self.variables[i] ** v[i] for i in xrange(self.nvars))
+        exp = lambda v: R.prod(self.variables[i] ** v[i] for i in range(self.nvars))
 
         y, z = split_vector(self.exponents[0])
         if y:
@@ -132,7 +133,7 @@ class CyclotomicRationalFunction:
         coeff = self.polynomial.coefficients()
         mon = self.polynomial.monomials()
 
-        for i in xrange(len(mon)):
+        for i in range(len(mon)):
             exps = self.exponents[:]
             exps[0] += monomial_log(mon[i])
             yield CyclotomicRationalFunction(self.ring(coeff[i]), exps).normalise()
@@ -152,7 +153,7 @@ class CyclotomicRationalFunction:
         alpha = self.exponents[:]
         k = len(alpha)-1
 
-        for i in xrange(1, k+1): # we use f * X^u/(1-X^v) == (-f) * X^(u-v)/(1-X^(-v))
+        for i in range(1, k+1): # we use f * X^u/(1-X^v) == (-f) * X^(u-v)/(1-X^(-v))
             if next(b for b in alpha[i] if b != 0) < 0:
                 alpha[i] = -alpha[i]
                 f = -f
@@ -191,9 +192,9 @@ class CyclotomicRationalFunction:
         alpha = self.exponents[:]
         k = len(alpha)-1
 
-        exp = lambda v: self.ring.prod(self.variables[i] ** v[i] for i in xrange(self.nvars)) # only non-negative entries allowed here!
+        exp = lambda v: self.ring.prod(self.variables[i] ** v[i] for i in range(self.nvars)) # only non-negative entries allowed here!
         
-        for i in xrange(1, k + 1):
+        for i in range(1, k + 1):
             beta = alpha[i]
 
             # (1) Check if we can cancel all of 1-X^beta.
@@ -227,7 +228,7 @@ class CyclotomicRationalFunction:
                 delta_pos, delta_neg = split_vector(delta)
                 y = exp(delta_pos)/exp(delta_neg) # == exp(delta)
 
-                g = (self.ring)(exp((m-1) * delta_neg) * sum(y ** i for i in xrange(m)))
+                g = (self.ring)(exp((m-1) * delta_neg) * sum(y ** i for i in range(m)))
 
                 # (1-X^beta)/(1-X^delta) = 1 + X^delta + ... + X^((m-1)*delta)
                 #                        = X^(-(m-1)*delta^-) * g
@@ -299,7 +300,7 @@ class CyclotomicRationalFunction:
             K = FractionField(ring)
             variables = [K.coerce(x) for x in self.variables]
 
-            exp = lambda v: K.prod(variables[i] ** v[i] for i in xrange(self.nvars))
+            exp = lambda v: K.prod(variables[i] ** v[i] for i in range(self.nvars))
             return CyclotomicRationalFunction.from_laurent_polynomial(
                 exp(self.exponents[0]) * K.coerce(self.polynomial) + exp(other.exponents[0]) * K.coerce(other.polynomial),
                 ring,
@@ -317,13 +318,13 @@ class CyclotomicRationalFunction:
 
         beta = other.exponents
         beta_pos, beta_neg = unzip(split_vector(w) for w in beta)
-        
-        k = len(alpha)-1
-        ell = len(beta)-1
 
-        I = range(1, k+1)
-        J = range(1, ell+1)
-        for i in xrange(1, k+1):
+        k = len(alpha) - 1
+        ell = len(beta) - 1
+
+        I = list(range(1, k + 1))
+        J = list(range(1, ell + 1))
+        for i in range(1, k + 1):
             j = next((j for j in J if alpha[i] == beta[j]), None)
             if j is not None:
                 I.remove(i)
@@ -340,7 +341,7 @@ class CyclotomicRationalFunction:
         v = alpha_neg[0] + sum(beta_neg[j] for j in J)
         w = beta_neg[0] + sum(alpha_neg[i] for i in I)
 
-        exp = lambda v: ring.prod(self.variables[i] ** v[i] for i in xrange(self.nvars))
+        exp = lambda v: ring.prod(self.variables[i] ** v[i] for i in range(self.nvars))
         h = ring.summation(
             ring.prod( [ exp(w), exp(alpha_pos[0]) ] + [ exp(beta_neg[j])  -  exp(beta_pos[j]) for j in J ] + [ Q.polynomial ] ),
             ring.prod( [ exp(v),  exp(beta_pos[0]) ] + [ exp(alpha_neg[i]) - exp(alpha_pos[i]) for i in I ] + [ other.polynomial ] )
@@ -434,7 +435,7 @@ class CyclotomicRationalFunction:
         # Unpack the denominator with multiplicities.
         for pol in itertools.chain.from_iterable([a] * int(i) for (a, i) in g.denominator().factor_list()):
             # Look for 'pol + 1' in y. If it isn't there, then 'pol' should be a constant.
-            i = next((i for i in xrange(r) if y[i] == pol + 1), None)
+            i = next((i for i in range(r) if y[i] == pol + 1), None)
             if i is None:
                 # Move constants into the numerator
                 if not ((PolynomialRing(QQ,y))(pol)).is_constant():

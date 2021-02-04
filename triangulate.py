@@ -1,20 +1,21 @@
 """
 Triangulations of pointed cones; includes yet another interface to Normaliz.
 """
+from sage.all import (ZZ, QQ, vector, prod, matrix, gcd,
+                      PointConfiguration, SimplicialComplex)
 
-from sage.all import *
-
-import common
+from . import common
 from collections import namedtuple
-from shutil import rmtree
 
-import string, subprocess, os
+import subprocess
+import os
 
-from util import TemporaryDirectory, cd, my_find_executable, augmented_env
+from .util import TemporaryDirectory, cd, my_find_executable, augmented_env
 
-from tmplist import TemporaryList
+from .tmplist import TemporaryList
+from .surf import SURF
 
-from util import create_logger
+from .util import create_logger
 logger = create_logger(__name__)
 
 common.normaliz = my_find_executable('normaliz')
@@ -23,7 +24,7 @@ common.normaliz = my_find_executable('normaliz')
 # via Cone(rays=sc.rays, lattice=ZZ**ambdim, check=False)).
 
 SCONE = namedtuple('SCONE', ['rays', 'multiplicity'])
-from surf import SURF
+
 
 def _explode_vector(v):
     if len(v) == 0:
@@ -31,9 +32,8 @@ def _explode_vector(v):
     elif len(v) == 1:
         return str(v[0])
     else:
-        return string.join(
-            '%d' % a for a in v[:-1]
-            ) + ' ' + str(v[-1])
+        return ' '.join('%d' % a for a in v[:-1]) + ' ' + str(v[-1])
+
 
 def _normalize_cone(C):
     # Produce valid normaliz input from cone.
@@ -42,11 +42,12 @@ def _normalize_cone(C):
         s += _explode_vector(r) + '\n'
     return s + 'integral_closure\n'
 
+
 def _triangulate_cone_internal(C, all_cones=False):
     rays = list(C.rays())
     if any(a < 0 for r in rays for a in r):
         raise ValueError('Internal triangulation only implemented for non-negative cones.')
-    normalised_rays = [Integer(1)/v.norm(1) * vector(QQ,v) for v in rays]
+    normalised_rays = [ZZ.one() / v.norm(1) * vector(QQ, v) for v in rays]
 
     with TemporaryList() as maximal_faces:
         for indices in PointConfiguration(normalised_rays).triangulate() if len(normalised_rays) > 1 else [[0]]:
@@ -54,13 +55,14 @@ def _triangulate_cone_internal(C, all_cones=False):
             if all_cones:
                 maximal_faces.append(indices)
             else:
-                multiplicity = prod(a for a in matrix(ZZ,subrays).elementary_divisors() if a != 0)
+                multiplicity = prod(a for a in matrix(ZZ, subrays).elementary_divisors() if a != 0)
                 yield SCONE(rays=subrays, multiplicity=multiplicity)
 
         if all_cones:
             X = SimplicialComplex(maximal_faces=maximal_faces, maximality_check=False)
             for f in X.face_iterator():
-                yield SCONE(rays = [rays[i] for i in f], multiplicity=-1)
+                yield SCONE(rays=[rays[i] for i in f], multiplicity=-1)
+
 
 def _triangulate_cone_normaliz(C, all_cones):
     if all_cones:
@@ -77,15 +79,14 @@ def _triangulate_cone_normaliz(C, all_cones):
             retcode = subprocess.call(
                 [common.normaliz, '-B', '-t', '-T', '-x=1', play],
                 stdout=DEVNULL, stderr=DEVNULL,
-                env=augmented_env(common.normaliz)
-                )
+                env=augmented_env(common.normaliz))
         if retcode != 0:
             raise RuntimeError('Normaliz failed')
 
         with TemporaryList() as maximal_faces:
             # Recover all the rays from the triangulation
             with TemporaryList() as rays:
-                with open(play+'.tgn', 'r') as f:
+                with open(play + '.tgn', 'r') as f:
                     nrays = int(f.readline())
                     ambdim = int(f.readline())
                     rays = []
@@ -100,7 +101,7 @@ def _triangulate_cone_normaliz(C, all_cones):
 
                 # Recover the simplicial pieces
                 cnt = 0
-                with open(play+'.tri', 'r') as f:
+                with open(play + '.tri', 'r') as f:
                     ncones = int(f.readline())
                     mplus1 = int(f.readline())
 
@@ -118,12 +119,11 @@ def _triangulate_cone_normaliz(C, all_cones):
                             raise RuntimeError('Multiplicity is missing from Normaliz output')
 
                         if all_cones:
-                            maximal_faces.append([i-1 for i in li[:-1]])
+                            maximal_faces.append([i - 1 for i in li[:-1]])
                             # Note that we discard all multiplicities in this case.
                         else:
-                            yield SCONE(rays = [rays[i-1] for i in li[:-1]],
-                                        multiplicity = li[-1]
-                                        )
+                            yield SCONE(rays=[rays[i - 1] for i in li[:-1]],
+                                        multiplicity=li[-1])
 
             logger.debug('Total number of cones in triangulation: %d' % cnt)
             if cnt != ncones:
@@ -132,12 +132,14 @@ def _triangulate_cone_normaliz(C, all_cones):
             if all_cones:
                 X = SimplicialComplex(maximal_faces=maximal_faces, maximality_check=False)
                 for f in X.face_iterator():
-                    yield SCONE(rays = [rays[i] for i in f], multiplicity=-1)
+                    yield SCONE(rays=[rays[i] for i in f], multiplicity=-1)
+
 
 def triangulate_cone(C, all_cones=False):
     if all_cones:
         raise NotImplementedError
     return _triangulate_cone_normaliz(C, all_cones) if common.normaliz else _triangulate_cone_internal(C, all_cones)
+
 
 def _topologise_scone(sc, Phi):
     if not sc.rays:
@@ -145,8 +147,8 @@ def _topologise_scone(sc, Phi):
     if (Phi.nrows() != len(sc.rays[0])) or (Phi.ncols() != 2):
         raise ValueError('Invalid substitution matrix')
 
-    li = [(int(Phi.column(0)*vector(ZZ,v)),
-           int(Phi.column(1)*vector(ZZ,v))) for v in sc.rays]
+    li = [(int(Phi.column(0) * vector(ZZ, v)),
+           int(Phi.column(1) * vector(ZZ, v))) for v in sc.rays]
 
     # An element of 'li' of the form (0,b) is really just the
     # scalar -b in disguise (mind the sign!).
@@ -155,11 +157,11 @@ def _topologise_scone(sc, Phi):
 
     rays = []
     num, den = sc.multiplicity, 1
-    for (a,b) in li: # this becomes 1/(a*s-b) in the SURF
+    for (a, b) in li:  # this becomes 1/(a*s-b) in the SURF
         if a == 0:
             den *= (-b)
         else:
-            rays.append((a,b))
+            rays.append((a, b))
     g = int(gcd(sc.multiplicity, den))
     num /= g
     den /= g
@@ -168,8 +170,9 @@ def _topologise_scone(sc, Phi):
         num, den = -num, 1
 
     if den != 1:
-        rays.append((0,-den))
+        rays.append((0, -den))
     return SURF(scalar=num, rays=rays)
+
 
 def topologise_cone(C, Phi):
     """

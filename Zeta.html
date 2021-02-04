@@ -42,7 +42,7 @@ Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a
 Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
 ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 
-                                                                  Version 0.4
+                                                                Version 0.4.1
                              by
                                  <a href="http://www.maths.nuigalway.ie/~rossmann">Tobias Rossmann</a>
   
@@ -89,6 +89,7 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 </li>
 <li><a href="#references">References</a></li>
 <li><a href="#funding">Funding</a></li>
+<li><a href="#acknowledgements">Acknowledgements</a></li>
 <li><a href="#license">License</a></li>
 <li><a href="#contact">Contact</a></li>
 </ol>
@@ -109,11 +110,11 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
   <a href="#ask2">6</a>,
   <a href="#cico">7</a>].
   Zeta is distributed as a <a href="http://www.python.org">Python</a>-package
-  for the computer algebra system <a href="http://sagemath.org/">Sage</a>.
+  for the computer algebra system <a href="http://sagemath.org/">SageMath</a>.
   In addition to <a href="https://www.singular.uni-kl.de">Singular</a> and other
   software included with Sage, Zeta also relies on
   <a href="https://www.math.ucdavis.edu/~latte/software.php">LattE integrale</a>
-  and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz">Normaliz</a>.
+  and <a href="https://www.normaliz.uni-osnabrueck.de/">Normaliz</a>.
 </p>
 
 <!--====================================================================-->
@@ -123,23 +124,29 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <h2 id="requirements">2.1 Requirements</h2>
 <!--====================================================================-->
 <p>This software requires a recent version
-  of <a href="http://sagemath.org/">Sage</a>.
-  Zeta 0.4 has been developed for Sage 8.8
+  of <a href="http://sagemath.org/">SageMath</a>.
+  Zeta 0.4.1 has been developed for Sage 9.2
   on 64-bit Linux (x86_64) systems; other platforms and versions of
   Sage may or may not work as expected.</p>
 <!--====================================================================-->
 <h2 id="installation">2.2 Installation</h2>
 <!--====================================================================-->
-<h3>Option 1 (recommended): binary distribution</h3>
+
+<p>
+  The (sources of the) most recent version of Zeta are available as
+  a <a href="https://github.com/torossmann/Zeta">public repository</a> on
+  <a href="https://github.com/">GitHub</a>.</p>
+
 <p>
 On a 64-bit Linux (x86_64) system, the easiest way to
-install Zeta is to download the 
-<a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4-x86_64.tar.bz2">
-binary distribution</a> and extract it into some directory,
+install Zeta is to download 
+<a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4.1-x86_64.tar.bz2">
+this archive</a> and extract it into some directory,
 <code>$DIR</code> say.
 This will create a subdirectory
 <code>$DIR/Zeta</code>;
-please make sure that any previous version of Zeta is removed beforehand.</p>
+please make sure that any previous version of Zeta is removed beforehand.
+Next, you will then have to run <code>make</code> from within <code>$DIR/Zeta</code>.</p>
 
 <p>If Sage is started from within
 <code>$DIR</code> or if <code>$DIR</code> is among the directories
@@ -159,21 +166,14 @@ shell. Alternatively, for a temporary solution, after executing</p>
 </code></pre>
 <p>from within Sage, you should be able to import Zeta.</p>
 
-<h3>Option 2: compile from sources</h3>
-<p>As an alternative to the binary distribution, you may also download the
-<a href=
-"http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4.tar.bz2">
-sources</a> of Zeta;
-you will then have to run <code>make</code> from within <code>$DIR/Zeta</code>.</p>
-
-<p>Zeta will try to invoke the 
-programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~latte/software.php">LattE integrale</a>),
+<p>During its operation, Zeta will try to invoke the 
+  programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~latte/software.php">LattE integrale</a>),
   <code>scdd_gmp</code> (part
   of <a href="https://www.inf.ethz.ch/personal/fukudak/cdd_home/">cddlib</a>
   and also bundled with LattE integrale),
   and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz/"><code>normaliz</code></a>.
   These programs should be placed inside <code>$DIR/Zeta/bin</code>; copies are
-  included with the binary distribution of Zeta.</p>
+  included with the archive linked to above.</p>
 <p>Zeta requires a patched version of <code>count</code>.
   To that end, the file <code>latte-int-1.7.3/code/latte/genFunction/maple.cpp</code>
   in the sources of LattE integrale 1.7.3 should be replaced by the
@@ -184,65 +184,6 @@ programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~la
   modified version</a> 
   (26M) of the LattE integrale 1.7.3 bundle.
 </p> 
-
-<!--====================================================================-->
-<h2 id="releases">2.3 Releases</h2>
-<!--====================================================================-->
-<p>The following table lists all versions of Zeta released so far. </p>
- <center>
-    <table border="1" summary="Releases">
-      <tr> <th>File</th> <th>Size</th> <th>Released</th> </tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4-x86_64.tar.bz2">Zeta-0.4-x86_64.tar.bz2</a>
-      (binary distribution)</td>
-      <td>3.4M</td>
-        <td>26/08/2019</td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4.tar.bz2">Zeta-0.4.tar.bz2</a>
-      </td>
-      <td>128K</td>
-        <td>26/08/2019</td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.3.2.tar.bz2">Zeta-0.3.2.tar.bz2</a>
-      </td>
-      <td>116K</td>
-        <td> 09/04/2017</td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">Zeta-0.3.1.tar.bz2</a>
-      </td>
-      <td>108K</td>
-        <td> 26/07/2016 </td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.3.tar.bz2">Zeta-0.3.tar.bz2</a>
-      </td>
-      <td>108K</td>
-        <td> 02/02/2016 </td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.2.1.tar.bz2">Zeta-0.2.1.tar.bz2</a> </td>
-      <td>72K</td>
-        <td> 19/06/2015 </td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.2.tar.bz2">Zeta-0.2.tar.bz2</a> </td>
-      <td>72K</td>
-        <td> 06/03/2015 </td>
-	</tr>
-      <tr>
-      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.1.tar.bz2">Zeta-0.1.tar.bz2</a> </td>
-      <td>56K</td>
-        <td> 17/09/2014 </td>
-      </tr>
-    </table>
-  </center>
-<p>
-You might also be interested in the 
-<a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/topzetas.txt">list</a>
-of algebras and associated topological zeta functions computed using Zeta.</p>
 
 <!--====================================================================-->
 <h1 id="usage">3. Basic usage</h1>
@@ -1068,9 +1009,19 @@ J.&nbsp;Algebra 448 (2016), 210&ndash;237.
 
 
 <!--====================================================================-->
-<h1 id="license">8. License</h1>
+<h1 id="acknowledgements">8. Acknowledgements</h1>
 <!--====================================================================-->
-<p>Copyright &copy; 2014, 2015, 2016, 2017, 2019 Tobias Rossmann.</p>
+<p>
+  I am grateful to
+  <a href="https://irma.math.unistra.fr/~chapoton/">Fr&eacute;d&eacute;ric
+    Chapoton</a>
+  for help with getting Zeta to work with SageMath 9.x.
+</p>
+
+<!--====================================================================-->
+<h1 id="license">9. License</h1>
+<!--====================================================================-->
+<p>Copyright &copy; 2014, 2015, 2016, 2017, 2019, 2021 Tobias Rossmann.</p>
 <p>Zeta is free software: you can redistribute it and/or modify it
 under the terms of the <a href=
 "http://www.gnu.org/copyleft/gpl.html">GNU General Public
@@ -1085,7 +1036,7 @@ General Public License for more details.</p>
 License along with Zeta. If not, see <a href=
 "http://www.gnu.org/licenses">http://www.gnu.org/licenses</a>.</p>
 <!--====================================================================-->
-<h1 id="contact">9. Contact</h1>
+<h1 id="contact">10. Contact</h1>
 <!--====================================================================-->
 <blockquote>Tobias Rossmann<br>
 School of Mathematics, Statistics and Applied Mathematics<br>
@@ -1096,6 +1047,6 @@ Ireland<br>
 <br>
 E-mail: tobias.rossmann (at) nuigalway.ie</blockquote>
 <hr>
-<small>last modified: 26 August 2019</small>
+<small>last modified: 4 February 2021</small>
 </body>
 </html>

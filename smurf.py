@@ -2,43 +2,50 @@
 Operations for sums of rational functions and an interface to (a patched version of) LattE's 'count'.
 """
 
-from sage.all import *
+from sage.all import (ZZ, Compositions, SR, exp, QQ, prod, PolynomialRing,
+                      vector, random_vector, matrix, FractionField)
+from sage.rings.all import CommutativeRing
 
-import common
+from . import common
 
-from util import my_find_executable, TemporaryDirectory, cd, augmented_env
-from cycrat import CyclotomicRationalFunction
+from .util import my_find_executable, TemporaryDirectory, cd, augmented_env
+from .cycrat import CyclotomicRationalFunction
 
-from tmplist import TemporaryList
+from .tmplist import TemporaryList
 
 import itertools
 
 import subprocess
 
-from util import create_logger
+from .util import create_logger
 logger = create_logger(__name__)
 
 common.count = my_find_executable('count')
 
+
 def NonnegativeCompositions(n, length=None):
-    # Produce all k-lists of nonnegative integers that sum up to k
-    for c in Compositions(n+length, length=length):
-        yield [a-1 for a in c]
+    """
+    Produce all k-lists of nonnegative integers that sum up to k.
+    """
+    for c in Compositions(n + length, length=length):
+        yield [a - 1 for a in c]
+
 
 def get_totally_nonperp_vector(vectors, strategy='random'):
-    """Construct a vector 'w' such that w * v != 0 for all v in vectors.
     """
-    vectors = list(vectors) # We want to allow generators.
+    Construct a vector 'w' such that w * v != 0 for all v in vectors.
+    """
+    vectors = list(vectors)  # We want to allow generators.
 
     if not vectors:
         return None
 
     n = len(vectors[0])
-    for k in (k for k in itertools.count() for _ in xrange((k+1) * n)):
+    for k in (k for k in itertools.count() for _ in range((k + 1) * n)):
         if strategy == 'random':
-            v = random_vector(n, x=-k, y=k+2)
+            v = random_vector(n, x=-k, y=k + 2)
         elif strategy == 'moment':
-            v = vector(ZZ, [1] + [k ** i for i in xrange(1,n)])
+            v = vector(ZZ, [1] + [k ** i for i in range(1, n)])
         else:
             raise TypeError('unknown strategy')
 
@@ -46,62 +53,64 @@ def get_totally_nonperp_vector(vectors, strategy='random'):
             continue
         return v
 
+
 def taylor_processor_naive(new_ring, Phi, scalar, alpha, I, omega):
     k = alpha.nrows() - 1
     tau = SR.var('tau')
-    y = [SR('y%d' % i) for i in xrange(k+1)]
+    y = [SR('y%d' % i) for i in range(k + 1)]
 
     R = PolynomialRing(QQ, len(y), y)
     beta = [a * Phi for a in alpha]
-
-    J = [i for i in xrange(1, k+1) if not(i in I)]
 
     def f(i):
         if i == 0:
             return QQ(scalar) * y[0] * exp(tau * omega[0])
         elif i in I:
-            return 1/(1 - exp(tau * omega[i]))
+            return 1 / (1 - exp(tau * omega[i]))
         else:
-            return 1/(1 - y[i] * exp(tau * omega[i]))
+            return 1 / (1 - y[i] * exp(tau * omega[i]))
 
-    h = prod(f(i) for i in xrange(k+1))
+    h = prod(f(i) for i in range(k + 1))
 
     # Get constant term of h as a Laurent series in tau.
     g = h.series(tau, 1).truncate().collect(tau).coefficient(tau, 0)
     g = g.factor() if g else g
     yield CyclotomicRationalFunction.from_split_expression(g, y, R).monomial_substitution(new_ring, beta)
-    
+
+
 def taylor_processor_factored(new_ring, Phi, scalar, alpha, I, omega):
     k = alpha.nrows() - 1
     tau = SR.var('tau')
-    y = [SR('y%d' % i) for i in xrange(k+1)]
+    y = [SR('y%d' % i) for i in range(k + 1)]
 
     R = PolynomialRing(QQ, len(y), y)
     beta = [a * Phi for a in alpha]
-    
+
     ell = len(I)
+
     def f(i):
         if i == 0:
             return QQ(scalar) * y[0] * exp(tau * omega[0])
         elif i in I:
-            return tau/(1 - exp(tau * omega[i]))
+            return tau / (1 - exp(tau * omega[i]))
         else:
-            return 1/(1 - y[i] * exp(tau * omega[i]))
+            return 1 / (1 - y[i] * exp(tau * omega[i]))
 
-    H = [f(i).series(tau, ell+1).truncate().collect(tau) for i in xrange(k+1)]
+    H = [f(i).series(tau, ell + 1).truncate().collect(tau) for i in range(k + 1)]
 
-    for i in xrange(k+1):
-        H[i] = [H[i].coefficient(tau, j) for j in xrange(ell+1)]
+    for i in range(k + 1):
+        H[i] = [H[i].coefficient(tau, j) for j in range(ell + 1)]
 
     r = []
 
     # Get coefficient of tau^ell in prod(H)
 
-    for w in NonnegativeCompositions(ell, k+1):
+    for w in NonnegativeCompositions(ell, k + 1):
         r = prod(
             CyclotomicRationalFunction.from_split_expression(H[i][w[i]], y, R).monomial_substitution(new_ring, beta)
-            for i in xrange(k+1))
+            for i in range(k + 1))
         yield r
+
 
 def latteify_polyhedron(P):
     res = []
@@ -119,6 +128,7 @@ def latteify_polyhedron(P):
             res.append(s)
     return '\n'.join(res + lin) + '\n'
 
+
 class SMURF:
     """
     Sums of MUltivariate Rational Functions.
@@ -129,12 +139,12 @@ class SMURF:
         # otherwise, we just use a native list.
 
         self.summands = [] if base_list is None else base_list
-        if isinstance(arg, sage.rings.ring.CommutativeRing):
+        if isinstance(arg, CommutativeRing):
             self.ring = arg
         elif isinstance(arg, CyclotomicRationalFunction):
             self.summands.append(arg.copy())
             self.ring = arg.ring
-        else: # we're expecting a non-empty iterable of CyclotomicRationalFunctions
+        else:  # we're expecting a non-empty iterable of CyclotomicRationalFunctions
             self.summands.extend(a.copy() for a in arg)
             self.ring = self.summands[0].ring
 
@@ -150,7 +160,7 @@ class SMURF:
 
     def __add__(self, other):
         if other == 0:
-            other = SMURF(self.ring) # this allows us to use 'sum' for SMURFs
+            other = SMURF(self.ring)  # this allows us to use 'sum' for SMURFs
 
         if (not self.summands) and (not other.summands):
             if self.ring != other.ring:
@@ -169,12 +179,12 @@ class SMURF:
             raise TypeError
 
     __iadd__ = extend
-    
+
     def append(self, cr):
         self.summands.append(cr)
         if not self.__is_consistent():
             raise TypeError
-        
+
     def __str__(self):
         return 'Sum of %d cyclotomic rational functions over %s' % (len(self.summands), self.ring.gens())
 
@@ -191,24 +201,22 @@ class SMURF:
         problems'', JAMS (2003).
         """
 
-        # NOTE: 
+        # NOTE:
         # we only ever apply this function to sums which compute an integral.
 
         if taylor_processor is None:
-            taylor_processor = taylor_processor_factored # taylor_processor_naive
+            taylor_processor = taylor_processor_factored  # taylor_processor_naive
 
         if not(self.summands):
             return SMURF(new_ring, base_list=base_list)
 
         v = get_totally_nonperp_vector(
             vector(QQ, w) for w in itertools.chain.from_iterable(
-                f.exponents[1:] for f in self.summands
-                )
-            )
+                f.exponents[1:] for f in self.summands))
 
         Phi = matrix(QQ, Phi)
         L = Phi.column_space()
-        Lperp = L.basis_matrix().right_kernel() 
+        Lperp = L.basis_matrix().right_kernel()
 
         with TemporaryList() as res:
             for f in itertools.chain.from_iterable(s.triangulate() for s in self.summands):
@@ -221,13 +229,13 @@ class SMURF:
                     pass
 
                 # Setting: f == scalar * X^alpha[0] / prod(1 - X^alpha[i], i=1..k)
-                scalar, alpha, k = f.polynomial, matrix(QQ,f.exponents), len(f.exponents)-1 # Note the final '-1'!
+                scalar, alpha, k = f.polynomial, matrix(QQ, f.exponents), len(f.exponents) - 1  # Note the final '-1'!
                 if not scalar:
                     continue
                 assert scalar.is_constant()  # note the use of 'triangulate' above
 
-                omega = [v*a for a in alpha]
-                I = [i for i in xrange(1, k+1) if alpha[i] in Lperp]
+                omega = [v * a for a in alpha]
+                I = [i for i in range(1, k + 1) if alpha[i] in Lperp]
                 res.extend(taylor_processor(new_ring, Phi, scalar, alpha, I, omega))
 
             return SMURF(new_ring, base_list=base_list) if not res else SMURF(res, base_list=base_list)
@@ -247,10 +255,10 @@ class SMURF:
             return cls([CyclotomicRationalFunction(ring.one())], base_list=base_list)
         elif len(P.vertices()) == 1 and (not P.rays()) and (not P.lines()):
             # For some reason, LattE doesn't produce .rat files for points.
-            return cls([CyclotomicRationalFunction(ring.one(), exponents=[vector(ZZ,P.vertices()[0])])])
+            return cls([CyclotomicRationalFunction(ring.one(), exponents=[vector(ZZ, P.vertices()[0])])])
 
-        hrep = 'polyhedron.hrep';
-        ratfun = hrep + '.rat';
+        hrep = 'polyhedron.hrep'
+        ratfun = hrep + '.rat'
 
         with TemporaryDirectory() as tmpdir, cd(tmpdir):
             with open(hrep, 'w') as f:
@@ -268,9 +276,12 @@ class SMURF:
 
             K = FractionField(ring)
             variables = [K.coerce(x) for x in ring.gens()]
-            exp = lambda a: K.prod(x**e for (x,e) in zip(variables,a))
 
-            vectorise_string = lambda s: vector(ZZ, s.strip().split())
+            def exp(a):
+                return K.prod(x**e for x, e in zip(variables, a))
+
+            def vectorise_string(s):
+                return vector(ZZ, s.strip().split())
 
             with TemporaryList() as summands, open(ratfun, 'r') as f:
                 while True:
@@ -280,7 +291,7 @@ class SMURF:
 
                     line = line.strip()
                     if not line:
-                        continue # ignore empty lines
+                        continue  # ignore empty lines
 
                     # The modified version of 'count' produces files in the following format:
                     # {
@@ -302,10 +313,10 @@ class SMURF:
 
                     scalar = ring(f.readline())
                     nterms = int(f.readline())
-                    numerator = K(scalar) * K.sum(exp(vectorise_string(f.readline())) for _ in xrange(nterms))
+                    numerator = K(scalar) * K.sum(exp(vectorise_string(f.readline())) for _ in range(nterms))
 
                     nrays = int(f.readline())
-                    exponents = [vector(ZZ,len(variables))] + [vectorise_string(f.readline()) for _ in xrange(nrays)]
+                    exponents = [vector(ZZ, len(variables))] + [vectorise_string(f.readline()) for _ in range(nrays)]
                     line = f.readline().strip()
 
                     if line != '}':

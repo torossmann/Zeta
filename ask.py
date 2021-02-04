@@ -1,32 +1,35 @@
-from sage.all import *
+from sage.all import matrix, PolynomialRing, identity_matrix, QQ, vector, FractionField, SR
 
-import common
+from .util import create_logger, cached_simple_method
 
-from util import create_logger, cached_simple_method
+from .reps import IgusaDatum, RepresentationProcessor
+from .convex import PositiveOrthant, RationalSet
+from .util import evaluate_matrix
+from .laurent import LaurentIdeal, LaurentPolynomial
+from .abstract import LocalZetaProcessor
+
 
 logger = create_logger(__name__)
 
-from reps import IgusaDatum, RepresentationProcessor
-from convex import PositiveOrthant, StrictlyPositiveOrthant, RationalSet
-from util import evaluate_matrix
-from laurent import LaurentIdeal, LaurentPolynomial
-from torus import SubvarietyOfTorus
-from abstract import LocalZetaProcessor
 
 def bullet_dual(A):
     R = A.base_ring()
     S = PolynomialRing(QQ, 'z', A.ncols())
-    fun = lambda v: sum(a*x for (a,x) in zip(v,S.gens()))
-    I = identity_matrix(S,A.nrows())
-    J = identity_matrix(S,R.ngens())
-    return matrix(S,[[fun(e * A(*(f.list()))) for f in J] for e in I])
+
+    def fun(v):
+        return sum(a * x for (a, x) in zip(v, S.gens()))
+    I = identity_matrix(S, A.nrows())
+    J = identity_matrix(S, R.ngens())
+    return matrix(S, [[fun(e * A(*f.list())) for f in J] for e in I])
+
 
 def circ_dual(A):
     R = A.base_ring()
     S = PolynomialRing(QQ, 'x', A.nrows())
     xx = vector(S, S.gens())
     basis = [evaluate_matrix(A, y) for y in identity_matrix(QQ, R.ngens())]
-    return matrix(S, [xx * matrix(S,A) for A in basis])
+    return matrix(S, [xx * matrix(S, A) for A in basis])
+
 
 class AskProcessor(RepresentationProcessor):
     def __init__(self, arg, mode=None):
@@ -36,7 +39,7 @@ class AskProcessor(RepresentationProcessor):
         if mode not in ['O', 'K', 'BO', 'BK', 'TO', 'TK']:
             raise ValueError("invalid mode")
 
-        self.translation = SR('q')**(arg.nrows()-arg.ncols()) if 'T' in mode else None
+        self.translation = SR('q')**(arg.nrows() - arg.ncols()) if 'T' in mode else None
         self.R = arg
         for x in mode[:-1]:
             if x == 'B':
@@ -45,7 +48,7 @@ class AskProcessor(RepresentationProcessor):
                 self.R = self.R.transpose()
             else:
                 raise ValueError
-            
+
         self.d = self.R.nrows()
         self.e = self.R.ncols()
 
@@ -54,9 +57,9 @@ class AskProcessor(RepresentationProcessor):
         self.ell = self.ring.ngens()
 
         self.basis = [evaluate_matrix(self.R, y) for y in identity_matrix(QQ, self.ell)]
-        V = (QQ**(self.d * self.e)).subspace([A.list() for A in self.basis])
-        #if V.dimension() != self.ell:
-        #    raise ValueError('subspace parameterised by matrix of linear forms has wrong dimension')
+        # V = (QQ**(self.d * self.e)).subspace([A.list() for A in self.basis])
+        # if V.dimension() != self.ell:
+        #     raise ValueError('subspace parameterised by matrix of linear forms has wrong dimension')
 
     def padically_evaluate_regular(self, datum):
         # The essential change from representation zeta functions is that
@@ -82,45 +85,39 @@ class AskProcessor(RepresentationProcessor):
 
             F = [
                 LaurentIdeal(
-                    gens = [LaurentPolynomial(f) for f in self.R.minors(j)],
-                    RS = self.RS,
-                    normalise = True)
-                for j in range(0, r+1)
+                    gens=[LaurentPolynomial(f) for f in self.R.minors(j)],
+                    RS=self.RS,
+                    normalise=True)
+                for j in range(r + 1)
             ]
         elif self.mode == 'O':
             self.RS = RationalSet([PositiveOrthant(self.d)], ambient_dim=self.d)
             actual_ring = PolynomialRing(QQ, 'x', self.d)
             xx = vector(actual_ring, actual_ring.gens())
-            self.C = matrix(actual_ring, [xx * matrix(actual_ring,A) for A in self.basis])
+            self.C = matrix(actual_ring, [xx * matrix(actual_ring, A) for A in self.basis])
             r = matrix(FractionField(actual_ring), self.C).rank()
             self.r = r
             if not self.d:
                 return
-            F = [
-                LaurentIdeal(
-                    gens = [LaurentPolynomial(f) for f in self.C.minors(j)],
-                    RS = self.RS,
-                    normalise = True)
-                for j in range(0, r+1)
-            ]
+            F = [LaurentIdeal(gens=[LaurentPolynomial(f)
+                                    for f in self.C.minors(j)],
+                              RS=self.RS,
+                              normalise=True)
+                 for j in range(r + 1)]
         else:
             raise ValueError('invalid mode')
-            
+
         oo = r + 1
 
         # On pairs:
         # The first component is used as is, the second is multiplied by the extra
         # variable. Note that index 0 corresponds to {1} and index oo to {0}.
-        self.pairs = (
-            [(oo,0)] +
-            [(i,oo)  for i in xrange(1,r)] +
-            [(i,i-1) for i in xrange(1,r+1)]
-            )
+        self.pairs = ([(oo, 0)] +
+                      [(i, oo) for i in range(1, r)] +
+                      [(i, i - 1) for i in range(1, r + 1)])
         # Total number of pairs: 2 * r
-        self.integrand = (
-            (1,) + (2*r-1)*(0,),
-            (self.d-r+1,) + (r-1) * (-1,) + r * (+1,)
-            )
+        self.integrand = ((1,) + (2 * r - 1) * (0,),
+                          (self.d - r + 1,) + (r - 1) * (-1,) + r * (+1,))
         self.datum = IgusaDatum(F + [LaurentIdeal(gens=[], RS=self.RS, ring=FractionField(actual_ring))]).simplify()
         return self.datum
 

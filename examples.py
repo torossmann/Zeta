@@ -1,7 +1,7 @@
 from sage.all import *
-from util import E
+from .util import E
 from collections import namedtuple
-from algebra import Algebra, tensor_with_duals
+from .algebra import Algebra, tensor_with_duals
 
 import json
 
@@ -6320,7 +6320,7 @@ for coll, op in [ (_raw, lambda z: Algebra(**z.input)),
         for name in z.names:
             id[name] = i
 
-for name, z in _reps.iteritems():
+for name, z in _reps.items():
     i = id.get(name, None)
     if i is None:
         raise RuntimeError
@@ -6329,8 +6329,8 @@ for name, z in _reps.iteritems():
 
 padzetas = [{} for L in algebras]
 
-for objs, D in _padic_raw.iteritems():
-    for name, zeta in D.iteritems():
+for objs, D in _padic_raw.items():
+    for name, zeta in D.items():
         try:
             i = id[name]
         except KeyError:
@@ -6461,7 +6461,8 @@ def printall(file=None, subalgebras=True, ideals=True, reps=True):
         import sys
         file = sys.stdout
 
-    import common, datetime
+    import common
+    import datetime
     file.write('List of algebras and topological zeta functions.\n'
                'Created %s using Zeta %s.\n\n' %
                (str(datetime.datetime.now()), common.VERSION))

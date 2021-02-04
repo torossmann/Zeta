@@ -1,16 +1,19 @@
 from sage.all import *
 
-from convex import RationalSet, dual_cone_as_polyhedron, PositiveOrthant
-import util
-import toric
+from .convex import RationalSet, dual_cone_as_polyhedron, PositiveOrthant
+from . import util
+from . import toric
 
 import itertools
+
 
 class LaurentError(Exception):
     pass
 
-from util import create_logger
+
+from .util import create_logger
 logger = create_logger(__name__)
+
 
 class LaurentPolynomial:
     __slots__ = ['ring', 'nvars', 'den', 'num', 'f']
@@ -22,7 +25,7 @@ class LaurentPolynomial:
         self.ring = f.parent()
         self.nvars = self.ring.ngens()
         self.den = f.denominator()
-        self.num = f.numerator()/self.den.lc()
+        self.num = f.numerator() / self.den.lc()
         self.den //= self.den.lc()
         if not self.den.is_monomial():
             raise LaurentError('not a Laurent polynomial')
@@ -57,7 +60,7 @@ class LaurentPolynomial:
 
     def divides(self, other):
         try:
-            _ = other/self
+            other/self
         except LaurentError:
             return False
         else:
@@ -82,7 +85,7 @@ class LaurentPolynomial:
     def __mul__(self, other):
         return LaurentPolynomial(self.f * other.f)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return LaurentPolynomial(self.f / other.f)
 
     def __pow__(self, exponent):
@@ -172,7 +175,7 @@ class LaurentIdeal:
         # BEGIN SANITY CHECK
         assert all(
             (self.initials[i] is None) or self.initials[i].is_subpolynomial(self.gens[i])
-            for i in xrange(len(self.gens)))
+            for i in range(len(self.gens)))
         # END SANITY CHECK
 
     def __eq__(self, other):

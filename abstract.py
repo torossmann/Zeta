@@ -1,22 +1,20 @@
 from sage.all import *
 
 from abc import ABCMeta, abstractmethod
-from tmplist import TemporaryList, DiskList
-
-from util import TemporaryDirectory, readable_filesize
-
-import addmany
-
-import surf
-import common
-import random
-
-import itertools
-from cycrat import CyclotomicRationalFunction
-
 from contextlib import closing
-from util import create_logger
+import random
+import itertools
+
+from .tmplist import TemporaryList, DiskList
+from .util import TemporaryDirectory, readable_filesize
+from . import addmany
+from . import surf
+from . import common
+from .cycrat import CyclotomicRationalFunction
+
+from .util import create_logger
 logger = create_logger(__name__)
+
 
 class ReductionError(Exception):
     pass
@@ -42,10 +40,10 @@ class ZetaDatum:
         yield
 
     def is_ordered(self):
-       return True
+        return True
 
     def order(self):
-       raise NotImplementedError
+        raise NotImplementedError
 
     @abstractmethod
     def is_regular(self):
@@ -54,6 +52,7 @@ class ZetaDatum:
     @abstractmethod
     def reduce(self, preemptive=False):
         pass
+
 
 class GeneralZetaProcessor:
     __metaclass__ = ABCMeta
@@ -117,7 +116,7 @@ class GeneralZetaProcessor:
 
                 try:
                     chops = datum.reduce(preemptive=False)
-                except ReductionError, e:
+                except ReductionError as e:
                     logger.debug("Don't know how to reduce this.")
                     raise e
                 else:
@@ -150,24 +149,30 @@ class TopologicalZetaProcessor(GeneralZetaProcessor):
             # Evaluate.
             #
             with TemporaryDirectory() as evaldir:
-                surfsum_names = [os.path.join(evaldir, 'surfsum%d' % k) for k in xrange(common.ncpus)]
+                surfsum_names = [os.path.join(evaldir, 'surfsum%d' % k) for k in range(common.ncpus)]
 
-                indices = range(len(regular))
+                indices = list(range(len(regular)))
                 if shuffle:
                     random.shuffle(indices)
 
                 def fun(k):
                     with closing(surf.SURFSum(surfsum_names[k])) as Q:
-                        for i in xrange(k, len(regular), common.ncpus):
+                        for i in range(k, len(regular), common.ncpus):
                             for S in self.topologically_evaluate_regular(regular[indices[i]]):
                                 Q.add(S)
                     logger.info('Evaluator #%d finished.' % k)
 
-                ET = sage.parallel.decorate.parallel(p_iter='reference' if common.debug else 'fork', ncpus=common.ncpus)(fun)
+
                 logger.info('Launching %d evaluators.' % common.ncpus)
-                for (arg, ret) in ET(range(common.ncpus)):
-                    if ret == 'NO DATA':
-                        raise RuntimeError('A parallel process died.')
+                if not common.debug:
+                    ET = sage.parallel.decorate.parallel(p_iter='fork', ncpus=common.ncpus)(fun)
+                    for (arg, ret) in ET(list(range(common.ncpus))):
+                        if ret == 'NO DATA':
+                            raise RuntimeError('A parallel process died.')
+                else:
+                    logger.info('Serial execution enabled.')
+                    for k in range(common.ncpus):
+                        fun(k)
                 logger.info('All evaluators finished.')
 
                 #
@@ -209,37 +214,45 @@ class LocalZetaProcessor(GeneralZetaProcessor):
             logger.info('Total number of regular data: %d' % len(regular))
 
             with TemporaryDirectory() as tmpdir:
-                eval_filenames = [os.path.join(tmpdir, 'eval%d' % k) for k in xrange(common.ncpus)]
+                eval_filenames = [os.path.join(tmpdir, 'eval%d' % k)
+                                  for k in range(common.ncpus)]
+
                 def evaluate(k):
                     def fun(i):
                         try:
                             Q = DiskList(eval_filenames[k])
                             for a in self.padically_evaluate_regular(regular[i]):
                                 Q.append(a)
-                        except Exception as e: # For debugging, change this to 'except RuntimeError as E'.
+                        except Exception as e:  # For debugging, change this to 'except RuntimeError as E'.
                             return e
                         else:
                             return True
 
                     if common.plumber and not common.debug:
                         fun = sage.parallel.decorate.fork(fun)
-                            
-                    for i in xrange(k, len(regular), common.ncpus):
+
+                    for i in range(k, len(regular), common.ncpus):
                         e = fun(i)
                         if e is not True:
-                            raise e # This will result in 'NO DATA' being returned below.
+                            raise e  # This will result in 'NO DATA' being returned below.
                     logger.info('Evaluator #%d finished.' % k)
 
-                ET = sage.parallel.decorate.parallel(p_iter='reference' if common.debug else 'fork', ncpus=common.ncpus)(evaluate)
                 logger.info('Launching %d evaluators.' % common.ncpus)
-                for (arg, ret) in ET(range(common.ncpus)):
-                    if ret == 'NO DATA':
-                        raise RuntimeError('A parallel process died.')
+
+                if not common.debug:
+                    ET = sage.parallel.decorate.parallel(p_iter='fork', ncpus=common.ncpus)(evaluate)
+                    for (arg, ret) in ET(list(range(common.ncpus))):
+                        if ret == 'NO DATA':
+                            raise RuntimeError('A parallel process died.')
+                else:
+                    logger.info('Serial execution enabled.')
+                    for k in range(common.ncpus):
+                        evaluate(k)
                 logger.info('All evaluators finished.')
 
                 if common.addmany_optimise:
                     eval_filenames = addmany.optimise(eval_filenames)
-                    
+
                 logger.info('Total number of rational functions: %d' % sum(len(DiskList(f)) for f in eval_filenames))
 
                 if common.addmany_dispatcher != 'symbolic':
@@ -272,7 +285,7 @@ class LocalZetaProcessor(GeneralZetaProcessor):
                     common.ncpus = ncpus
 
                 with open(os.path.join(tmpdir, 'unfactored'), 'w') as f:
-                    f.write(str(res)) # just in case factoring runs out of memory
+                    f.write(str(res))  # just in case factoring runs out of memory
 
                 # Final recovery.
                 logger.info('Factoring final result.')

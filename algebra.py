@@ -4,13 +4,13 @@ ring structures on ZZ^n.
 """
 
 from sage.all import *
-from convex import PositiveOrthant
-from toric import ToricDatum
-from util import normalise_poly, monomial_log, cached_simple_method, \
+from .convex import PositiveOrthant
+from .toric import ToricDatum
+from .util import normalise_poly, monomial_log, cached_simple_method, \
     upper_triangular_matrix, is_block_diagonal_matrix, \
     basis_of_matrix_algebra, subspace_structured_basis
 
-import common
+from . import common
 import multiprocessing
 
 import itertools
@@ -43,12 +43,12 @@ class Algebra:
                     if   A[i,j] == 0: return (Integer(0) * e[0])
                     elif A[i,j] > 0:  return (e[A[i,j]-1])
                     elif A[i,j] < 0:  return (-e[-A[i,j]-1])
-                self.table = [ [ f(i,j) for j in xrange(self.rank) ] for i in xrange(self.rank) ]
+                self.table = [ [ f(i,j) for j in range(self.rank) ] for i in range(self.rank) ]
             elif bilinear:
                 n = A.ncols()
                 self.rank = n + Integer(1)
                 w = vector(QQ, n * [Integer(0)] + [Integer(1)])
-                self.table = [ [ A[i,j] * w for j in xrange(n) ] + [ 0 * w ] for i in xrange(n) ] + [ [ 0 * w for j in xrange(n+1) ] ]
+                self.table = [ [ A[i,j] * w for j in range(n) ] + [ 0 * w ] for i in range(n) ] + [ [ 0 * w for j in range(n+1) ] ]
 
             self.blocks = (self.rank,) if blocks is None else tuple(blocks)
             return
@@ -56,13 +56,13 @@ class Algebra:
         # If the rank is set, always initialise an empty table.
         if not(rank is None):
             self.rank = rank
-            self.table = [ [ vector(QQ, self.rank) for j in xrange(self.rank) ] for i in xrange(self.rank) ]
+            self.table = [ [ vector(QQ, self.rank) for j in range(self.rank) ] for i in range(self.rank) ]
             self.blocks = (self.rank,) if blocks is None else tuple(blocks)
 
         if isinstance(table, dict):
             if rank is None:
                 raise TypeError('You need to specify the rank') 
-            for pos, v in table.iteritems():
+            for pos, v in table.items():
                 self.table[pos[0]][pos[1]] = vector(QQ, v)
             return
 
@@ -102,7 +102,7 @@ class Algebra:
 
     def multiply(self, v, w, ring=QQ):
         return vector(ring, 
-                      [ sum(v[i] * w[j] * ring(self.table[i][j][k]) for i in xrange(self.rank) for j in xrange(self.rank)) for k in xrange(self.rank) ]
+                      [ sum(v[i] * w[j] * ring(self.table[i][j][k]) for i in range(self.rank) for j in range(self.rank)) for k in range(self.rank) ]
                       )
 
     def right_multiplication(self, w, ring=QQ):
@@ -237,21 +237,21 @@ class Algebra:
         A = matrix(QQ, A)
         if not A.is_invertible():
             raise TypeError('The argument must be an invertible matrix over QQ.') 
-        return Algebra( table = [[ self.multiply( A[i], A[j] ) * A.inverse() for j in xrange(self.rank) ] for i in xrange(self.rank)],
+        return Algebra( table = [[ self.multiply( A[i], A[j] ) * A.inverse() for j in range(self.rank) ] for i in range(self.rank)],
                         operators = [ A * op * A**(-1) for op in self.operators ], blocks = self.blocks )
 
     @cached_simple_method
     def _Lie_centre(self):
         # Construct the QQ-space of all z with a*z == z*a == 0 for all a.
         Z = QQ**self.rank
-        for i in xrange(self.rank):
+        for i in range(self.rank):
             Z = Z.intersection(
-                matrix(QQ, [self.table[i][j] for j in xrange(self.rank)]).left_kernel()       
+                matrix(QQ, [self.table[i][j] for j in range(self.rank)]).left_kernel()       
             )
             if self.is_anticommutative() or self.is_commutative():
                 continue
             Z = Z.intersection(
-                matrix(QQ, [self.table[j][i] for j in xrange(self.rank)]).left_kernel()
+                matrix(QQ, [self.table[j][i] for j in range(self.rank)]).left_kernel()
             )
         return Z
 
@@ -301,9 +301,9 @@ class Algebra:
         a = dims[0] ; b = a + d # [a,b) == indices of basis vectors of the commutator ideal
 
         R = matrix(ring, [
-            [ y * vector(ring, [T.table[i][j][k] for k in xrange(a,b)])
-              for j in xrange(r) ]
-            for i in xrange(r) ]
+            [ y * vector(ring, [T.table[i][j][k] for k in range(a,b)])
+              for j in range(r) ]
+            for i in range(r) ]
                   )
         # get last dims[1] columns
         S = (R.transpose()[r-dims[1]:r]).transpose()
@@ -318,8 +318,8 @@ class Algebra:
         # as a matrix of linear forms.
         # For non-coordinate submodules, change bases accordingly.
         
-        domain = range(self.rank) if domain is None else domain
-        codomain = range(self.rank) if codomain is None else codomain
+        domain = list(range(self.rank)) if domain is None else domain
+        codomain = list(range(self.rank)) if codomain is None else codomain
         
         ring = PolynomialRing(QQ, 'y', len(codomain))
         y = vector(ring, ring.gens())
@@ -337,57 +337,6 @@ class Algebra:
         A,domain,codomain = subspace_structured_basis(U, V)
         return _commutator_matrix_by_coordinates(self, domain, codomain)
        
-    def _KK_commutator_matrices_v1(self, H):
-        # H should be a vector space corresponding to a subalgebra
-        D = self.derived_series(bound=2)[1]
-        S = H + D
-
-        # Construct C (+) B (+) A (+) I corresponding to
-        # G/H[G,G] x H[G,G]/H x H/(H cap [G,G]) x (H cap [G,G])
-        I = H.intersection(D)
-        A = H.intersection(I.complement())
-        B = S.intersection(H.complement()) # NOTE: probably bad, see v2
-        C = S.complement()
-
-        # The common coordinate range for both commutator matrices
-        # corresponds to the B-part.
-        # For the S-matrix, we just delete the C-part.
-
-        T = matrix(QQ,
-                   [v.denominator()*v
-                    for v in itertools.chain(C.basis(), B.basis(), A.basis(),
-                                             I.basis())])
-        l = self.change_basis(T)
-        R = l._commutator_matrix_by_coordinates(codomain=range(dim(C),dim(C)+dim(B)))
-        S = R.submatrix(0,dim(C))
-        return R,S
-
-    def _KK_commutator_matrices_v2(self, H):
-        # H should be a vector space corresponding to a subalgebra
-        D = self.derived_series(bound=2)[1]
-        S = H + D
-
-        # Construct C (+) B (+) A (+) I corresponding to
-        # G/H[G,G] x H[G,G]/H x H/(H cap [G,G]) x (H cap [G,G])
-        I = H.intersection(D)
-        Ic= I.complement()
-        A = H.intersection(Ic)
-        B = D.intersection(Ic)
-        C = S.complement()
-
-        # The common coordinate range for both commutator matrices
-        # corresponds to the B-part.
-        # For the S-matrix, we just delete the C-part.
-
-        T = matrix(QQ,
-                   [v.denominator()*v
-                    for v in itertools.chain(C.basis(), B.basis(), A.basis(),
-                                             I.basis())])
-        l = self.change_basis(T)
-        R = l._commutator_matrix_by_coordinates(codomain=range(dim(C),dim(C)+dim(B)))
-        S = R.submatrix(0,dim(C))
-        return R,S
-
     def _KK_commutator_matrices(self, H):
         D = self.derived_series(bound=2)[1]
         A, indices = subspace_structured_basis(H, D)
@@ -422,7 +371,7 @@ class Algebra:
         D = prod(M.diagonal())
 
         diag = iter(M.diagonal())
-        zoo = prod(next(diag)**(i+1) for a in self.blocks for i in xrange(a))
+        zoo = prod(next(diag)**(i+1) for a in self.blocks for i in range(a))
         integrand = (monomial_log(D), monomial_log(zoo) - vector(QQ,R.ngens() * [1]))
 
         Madj = M.adjugate()
@@ -436,8 +385,8 @@ class Algebra:
                 if not cand in li:
                     li.append(cand)
 
-        for i in xrange(self.rank):
-            for j in xrange(self.rank):
+        for i in range(self.rank):
+            for j in range(self.rank):
                 if objects == 'subalgebras':
                     insert_components(self.multiply(M[i], M[j], R) * Madj)
                 if (objects == 'right ideals') or (objects == 'ideals'):
@@ -466,7 +415,7 @@ class Algebra:
                 continue
             mon, coeff = rhs.monomials(), rhs.coefficients()
             # Discard monomials in 'rhs' that are divisible by 'lhs'
-            idx = [k for k in xrange(len(mon)) if not lhs.divides(mon[k])]
+            idx = [k for k in range(len(mon)) if not lhs.divides(mon[k])]
             rhs = sum(coeff[k] * mon[k] for k in idx)
 
             if rhs.is_zero():
@@ -494,12 +443,12 @@ class Algebra:
             return L.toric_datum(objects=objects, name=name).weight()
 
         Sn = SymmetricGroup(self.rank)
-        partial_sums = [sum(self.blocks[:i]) for i in xrange(len(self.blocks)+1)]
+        partial_sums = [sum(self.blocks[:i]) for i in range(len(self.blocks)+1)]
         gens = []
-        for r in xrange(len(partial_sums)-1):
+        for r in range(len(partial_sums)-1):
             a = partial_sums[r]
             b = partial_sums[r+1]
-            G = SymmetricGroup(range(a+1,b+1)) # NOTE: SymmetricGroup(n) acts on [1,...,n] instead of range(n).
+            G = SymmetricGroup(list(range(a+1,b+1))) # NOTE: SymmetricGroup(n) acts on [1,...,n] instead of range(n).
             f = G.hom(Sn)
             gens.extend(f(g) for g in G.gens())
         G = Sn.subgroup(gens)
@@ -617,7 +566,7 @@ def tensor_with_duals(L):
             return zero + list(L.table[i-n][j])
         else:
             return zero + zero
-    return Algebra(table=[[f(i,j) for j in xrange(2*n)] for i in xrange(2*n)])
+    return Algebra(table=[[f(i,j) for j in range(2*n)] for i in range(2*n)])
 
 def tensor_with_3duals(L):
     if len(L.blocks) > 1:
@@ -642,4 +591,4 @@ def tensor_with_3duals(L):
             return zero + zero + list(L.table[i-2*n][j])
         else:
             return zero + zero + zero
-    return Algebra(table=[[f(i,j) for j in xrange(3*n)] for i in xrange(3*n)])
+    return Algebra(table=[[f(i,j) for j in range(3*n)] for i in range(3*n)])

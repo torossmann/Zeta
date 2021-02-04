@@ -1,6 +1,6 @@
 # cython: language_level=2
 
-import common
+from . import common
 import sage.all
 import sage.interfaces
 import sage.parallel
@@ -12,10 +12,10 @@ import struct
 
 from sage.all import Integer, Rational, FractionField
 
-from tmplist import DiskList
+from .tmplist import DiskList
 from collections import Counter
 
-from util import create_logger
+from .util import create_logger
 logger = create_logger(__name__)
 
 BUCKET_SIZE = 64
@@ -100,16 +100,16 @@ cdef class HashAdder:
                     break
 
     cdef values(HashAdder self):
-        return self.D.itervalues()
+        return iter(self.D.itervalues())
 
     def keys(HashAdder self):
-        return self.D.iterkeys()
+        return iter(self.D.iterkeys())
 
     cdef items(HashAdder self):
-        return self.D.iteritems()
+        return iter(self.D.iteritems())
 
     def __iter__(HashAdder self):
-        return self.D.iterkeys()
+        return iter(self.D.iterkeys())
 
 # A term a * x^e[0] * y^e[1] for a = n/d (n > 0) is stored using exactly 36
 # bytes as follows:
@@ -137,19 +137,19 @@ cdef class Rational256:
         cdef bint is_negative = (d < 0)
         d = -d if is_negative else d
 
-        self.n_lo = n & 0xffffffffffffffffULL # 2^64-1
+        self.n_lo = n & 0xffffffffffffffffULL  # 2^64-1
         self.n_hi = n >> 64
         self.d_lo = d & 0xffffffffffffffffULL
         self.d_hi = d >> 64
 
-        if self.d_hi & 0x8000000000000000ULL: # check if the 2^63 bit is set
+        if self.d_hi & 0x8000000000000000ULL:  # check if the 2^63 bit is set
             raise OverflowError('denominator does not fit into 128 bits')
         self.d_hi = (self.d_hi << 1) | (1 if is_negative else 0)
 
     def dumps(Rational256 self):
         return struct.pack('=QQQQ', self.n_lo, self.n_hi, self.d_lo, self.d_hi)
 
-    def loads(Rational256 self, str s):
+    def loads(Rational256 self, bytes s):
         self.n_lo, self.n_hi, self.d_lo, self.d_hi = struct.unpack('=QQQQ', s)
 
     def __nonero__(Rational256 self):
@@ -161,32 +161,34 @@ cdef class Rational256:
 
         cdef uint64_t d_hi_shifted = self.d_hi >> 1
 
-        mpz_init(a) ; mpz_init(b)
+        mpz_init(a)
+        mpz_init(b)
 
         is_negative = self.d_hi & 1
 
         if self.n_hi:
-            mpz_set_ux(a, self.n_lo)
-            mpz_set_ux(b, self.n_hi)
+            mpz_set_ui(a, self.n_lo)
+            mpz_set_ui(b, self.n_hi)
             mpz_mul_2exp(b, b, 64)
             mpz_ior(mpq_numref(x), a, b)
         else:
-            mpz_set_ux(mpq_numref(x), self.n_lo)
+            mpz_set_ui(mpq_numref(x), self.n_lo)
 
         if d_hi_shifted:
-            mpz_set_ux(a, self.d_lo)
-            mpz_set_ux(b, d_hi_shifted)
+            mpz_set_ui(a, self.d_lo)
+            mpz_set_ui(b, d_hi_shifted)
             mpz_mul_2exp(b, b, 64)
             mpz_ior(mpq_denref(x), a, b)
         else:
-            mpz_set_ux(mpq_denref(x), self.d_lo)
+            mpz_set_ui(mpq_denref(x), self.d_lo)
 
         # mpq_canonicalize(x) # not needed!
 
         if is_negative:
             mpq_neg(x, x)
             
-        mpz_clear(a) ; mpz_clear(b)
+        mpz_clear(a)
+        mpz_clear(b)
 
     cdef from_mpq_t(Rational256 self, mpq_t x):
         cdef int sgn
@@ -199,65 +201,72 @@ cdef class Rational256:
             self.d_lo = 1
             return
 
-        mpz_init(a) ; mpz_init(b) ; mpz_init(c)
+        mpz_init(a)
+        mpz_init(b)
+        mpz_init(c)
 
-        #### a = abs(x.numerator())
+        # a = abs(x.numerator())
         mpz_set(a, mpq_numref(x))
-        if sgn == -1: # NOTE: denominators of canonicalised rational numbers are positive
+        if sgn == -1:  # NOTE: denominators of canonicalised rational numbers are positive
             mpz_neg(a, a)
 
-        #### self.n_lo = b = a & (2^64 - 1)
-        mpz_set_ux(c, 0xffffffffffffffffULL)
+        # self.n_lo = b = a & (2^64 - 1)
+        mpz_set_ui(c, 0xffffffffffffffffULL)
         mpz_and(b, a, c)
-        self.n_lo = mpz_get_ux(b)
+        self.n_lo = mpz_get_ui(b)
 
-        #### self.n_hi = b = a >> 64
+        # self.n_hi = b = a >> 64
         mpz_fdiv_q_2exp(b, a, 64)
-        self.n_hi = mpz_get_ux(b)
+        self.n_hi = mpz_get_ui(b)
 
-        #### b = a >> 128
+        # b = a >> 128
         mpz_fdiv_q_2exp(b, b, 64)
         if mpz_sgn(b):
             raise OverflowError('Numerator does not fit into 128 bits')
 
-        #### a = x.denominator()
+        # a = x.denominator()
         mpz_set(a, mpq_denref(x))
 
-        #### self.d_lo = b = a & (2^64 - 1)
+        # self.d_lo = b = a & (2^64 - 1)
         mpz_and(b, a, c)
-        self.d_lo = mpz_get_ux(b)
+        self.d_lo = mpz_get_ui(b)
 
-        #### b = a >> 64
+        # b = a >> 64
         mpz_fdiv_q_2exp(b, a, 64)
         if mpz_tstbit(b, 63):
             raise OverflowError('Denominator does not fit into 128 bits [sign]')
 
-        ####  self.d_hi = b = ((a >> 64) << 1) | is_negative
+        #  self.d_hi = b = ((a >> 64) << 1) | is_negative
         mpz_mul_2exp(b, b, 1)
         mpz_set_ui(c, 1 if sgn == -1 else 0)
         mpz_ior(b, b, c)
-        self.d_hi = mpz_get_ux(b)
+        self.d_hi = mpz_get_ui(b)
 
-        ### b = a >> 128
+        # b = a >> 128
         mpz_fdiv_q_2exp(b, b, 64)
         if mpz_sgn(b):
             raise OverflowError('Denominator does not fit into 128 bits [size]')
 
-        mpz_clear(a) ; mpz_clear(b) ; mpz_clear(c)
+        mpz_clear(a)
+        mpz_clear(b)
+        mpz_clear(c)
 
     def __add__(Rational256 self, Rational256 other):
         # return Rational256(self.eval() + other.eval())
         cdef Rational256 x = Rational256.__new__(Rational256)
         cdef mpq_t a, b
 
-        mpq_init(a) ; mpq_init(b)
+        mpq_init(a)
+        mpq_init(b)
 
         self.to_mpq_t(a)
         other.to_mpq_t(b)
         mpq_add(a, a, b)
         x.from_mpq_t(a)
 
-        mpq_clear(a) ; mpq_clear(b)
+        mpq_clear(a)
+        mpq_clear(b)
+        
         return x
 
     def eval(Rational256 self):
@@ -276,7 +285,7 @@ cdef class Rational256:
             d64 = -self.d_lo if is_negative else self.d_lo
             d = Integer(d64)
 
-        return ((Integer(self.n_lo) | (Integer(self.n_hi) << 64)) if self.n_hi else Integer(self.n_lo))/d
+        return ((Integer(self.n_lo) | (Integer(self.n_hi) << 64)) if self.n_hi else Integer(self.n_lo)) / d
 
 cdef class DictPolynomial:
     cdef dict D
@@ -291,7 +300,7 @@ cdef class DictPolynomial:
         elif hasattr(f, 'read'):
             self.load(f)
         elif hasattr(f, 'exponents'):
-            for c, alpha in itertools.izip(f.coefficients(), f.exponents()):
+            for c, alpha in zip(f.coefficients(), f.exponents()):
                 if len(alpha) != 2:
                     raise NotImplementedError('DictPolynomial only supports bivariate polynomials')
                 if alpha[0] < 0 or alpha[0] > 0xffff or alpha[1] < 0 or alpha[1] > 0xffff:
@@ -313,24 +322,24 @@ cdef class DictPolynomial:
                 
     def __iadd__(DictPolynomial self, DictPolynomial other):
         cdef uint32_t key
-        for key, value in other.D.iteritems():
+        for key, value in iter(other.D.iteritems()):
             self._add_key_value(key, value)
         return self
    
     def polynomial(DictPolynomial self, ring):
         cdef uint32_t key
-        y, x = ring.gens() # at some point, I decided to order variables as (t,q) instead of (q,t)
-        return ring.sum(value.eval() * y**(key & 0xffff) * x**(key >> 16) for key, value in self.D.iteritems())
+        y, x = ring.gens()  # at some point, I decided to order variables as (t,q) instead of (q,t)
+        return ring.sum(value.eval() * y**(key & 0xffff) * x**(key >> 16) for key, value in iter(self.D.iteritems()))
 
     def dump(DictPolynomial self, file):
         cdef uint32_t key
-        for key, value in self.D.iteritems():
+        for key, value in iter(self.D.iteritems()):
             file.write(struct.pack('=I', key) + value.dumps())
 
     def _terms_from_file(DictPolynomial self, file):
         cdef uint32_t key
         cdef Rational256 x
-        cdef str raw
+        cdef bytes raw
 
         while True:
             raw = file.read(_string_length)
@@ -339,7 +348,7 @@ cdef class DictPolynomial:
             if len(raw) != _string_length:
                 raise RuntimeError
 
-            key, = struct.unpack('=I',raw[:4])
+            key, = struct.unpack('=I', raw[:4])
             x = Rational256()
             x.loads(raw[4:])
             yield key, x
@@ -377,7 +386,7 @@ def _addmany_numerator(filenames, denominator, *args):
         if not common.save_memory:
             for a in itertools.islice(all_crfs, k, None, common.ncpus):
                 try:
-                    a_in_K =  K.coerce(a.evaluate())
+                    a_in_K = K.coerce(a.evaluate())
                 except TypeError:
                     raise ValueError('this example is not uniform: use the symbolic dispatcher instead')
                 num, den = a_in_K.numerator(), a_in_K.denominator()
@@ -387,11 +396,13 @@ def _addmany_numerator(filenames, denominator, *args):
             logger.info('Summator #%d finished.' % k)
             return
 
-        indices = range(k, len(all_crfs), common.ncpus)
-        for i in xrange(0, len(indices), BUCKET_SIZE):
+        indices = list(range(k, len(all_crfs), common.ncpus))
+        for i in range(0, len(indices), BUCKET_SIZE):
             pid = os.fork()
             if not pid:
-                import sage.misc.misc; reload(sage.misc.misc)
+                import sage.misc.misc
+                reload(sage.misc.misc)
+                
                 sage.interfaces.quit.invalidate_all()
 
                 try:
@@ -401,7 +412,7 @@ def _addmany_numerator(filenames, denominator, *args):
                         pass
 
                     dp = DictPolynomial()
-                    for j in xrange(i, i + BUCKET_SIZE):
+                    for j in range(i, i + BUCKET_SIZE):
                         if j >= len(indices):
                             break
                         a_in_K =  K.coerce(all_crfs[indices[j]].evaluate())
@@ -432,12 +443,18 @@ def _addmany_numerator(filenames, denominator, *args):
     res = DictPolynomial()
     logger.info('Launching %d summators.' % common.ncpus)
 
-    ET = sage.parallel.decorate.parallel(p_iter='reference' if common.debug else 'fork', ncpus=common.ncpus)(add)
-    for (arg, ret) in ET(range(common.ncpus)):
-        if ret == 'NO DATA':
-            raise RuntimeError('A parallel process died.')
-        with Open(os.path.join(tmpdir, 'res%d' % arg[0]), 'rb') as f:
-            res.add_from_file(f)
+    if not common.debug:
+        ET = sage.parallel.decorate.parallel(p_iter='reference' if common.debug else 'fork', ncpus=common.ncpus)(add)
+        for (arg, ret) in ET(list(range(common.ncpus))):
+            if ret == 'NO DATA':
+                raise RuntimeError('A parallel process died.')
+            with Open(os.path.join(tmpdir, 'res%d' % arg[0]), 'rb') as f:
+                res.add_from_file(f)
+    else:
+        for k in range(common.ncpus):
+            add(k)
+            with Open(os.path.join(tmpdir, 'res%d' % k), 'rb') as f:
+                res.add_from_file(f)
 
     logger.info('All summators finished.')
     return res.polynomial(R) / denominator.evaluate_reciprocal()
@@ -449,7 +466,7 @@ def _addmany_symbolic(filenames, *args):
         for f in filenames[k::common.ncpus]:
             Q = DiskList(f)
             for a in Q:
-                z =  sage.all.SR(a.evaluate('symbolic'))
+                z = sage.all.SR(a.evaluate('symbolic'))
                 z = z.factor() if z else z
                 res += z
                 cnt += 1
@@ -462,7 +479,7 @@ def _addmany_symbolic(filenames, *args):
     res = sage.all.SR(0)
     logger.info('Launching %d summators.' % common.ncpus)
     ET = sage.parallel.decorate.parallel(p_iter='reference' if common.debug else 'fork', ncpus=common.ncpus)(add)
-    for (arg, ret) in ET(range(common.ncpus)):
+    for (arg, ret) in ET(list(range(common.ncpus))):
         if ret == 'NO DATA':
             raise RuntimeError('A parallel process died.')
         res += ret
@@ -470,7 +487,8 @@ def _addmany_symbolic(filenames, *args):
     return res
 
 def addmany(filenames, denominator):
-    dispatcher = { 'symbolic': _addmany_symbolic, 'numerator': _addmany_numerator }
+    dispatcher = { 'symbolic': _addmany_symbolic,
+                   'numerator': _addmany_numerator }
     method = common.addmany_dispatcher
     if method not in dispatcher:
          raise ValueError('invalid dispatcher')
@@ -493,7 +511,7 @@ def _optimise_match(filenames):
     logger.debug('Joining rational functions.')
     D = {}
 
-    new_filenames = [os.path.join(tmpdir, 'opt_match_eval%d' % k) for k in xrange(common.ncpus)]
+    new_filenames = [os.path.join(tmpdir, 'opt_match_eval%d' % k) for k in range(common.ncpus)]
     Q = [DiskList(f) for f in new_filenames]
 
     idx = 0
@@ -555,7 +573,7 @@ def _optimise_combine(filenames):
             # If necessary, reduce the number of CRFs to be added in one
             # step by taking a random choice of at most 42 (magic constant!)
             # elements.
-            indices = range(len(keys))
+            indices = list(range(len(keys)))
             random.shuffle(indices)
             indices = indices[:42]
             keys = [keys[i] for i in indices]
@@ -582,7 +600,7 @@ def _optimise_combine(filenames):
 
     def weight_sorter_decreasing(HA):
         rays = rays_of(HA)
-        rays.sort(key=lambda x: -abs(x[0])-abs(x[1]))
+        rays.sort(key=lambda x: -abs(x[0]) - abs(x[1]))
         return rays
 
     def sum_sorter_increasing(HA):
@@ -623,7 +641,7 @@ def _optimise_combine(filenames):
        
     logger.debug('Writing back CRFs.')
     tmpdir = os.path.dirname(filenames[0])
-    new_filenames = [os.path.join(tmpdir, 'opt_combine_eval%d' % k) for k in xrange(common.ncpus)]
+    new_filenames = [os.path.join(tmpdir, 'opt_combine_eval%d' % k) for k in range(common.ncpus)]
     Q = [DiskList(f) for f in new_filenames]
 
     idx = 0
@@ -642,4 +660,3 @@ def optimise(filenames):
     for opt in [_optimise_match, _optimise_combine]:
         filenames = opt(filenames)
     return filenames
-
