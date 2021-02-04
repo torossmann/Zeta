@@ -7,10 +7,10 @@ from sage.all import *
 from itertools import chain
 from convex import mixed_volume
 from util import normalise_laurent_polynomial, squarefree_part, monomial_exp, \
-    terms_of_polynomial, cached_simple_method
-import toric
+    terms_of_polynomial, cached_simple_method, split_off_torus
 
-from util import create_logger
+from util import create_logger, MyCompositions
+
 logger = create_logger(__name__)
 
 # def monomial_sat(I):
@@ -41,14 +41,14 @@ class SubvarietyOfTorus:
 
         if self.torus_dim == 0:
             # Some things like GCDs fail for polynomial rings in 0 variables. *sigh*
-            self.polynomials = [one(self.ring)] if any(f for f in polynomials) else []
+            self.polynomials = [self.ring.one()] if any(f for f in polynomials) else []
             return
 
         # Map everything into our 'reference polynomial ring' and normalise.
         theta = R.hom(self.ring.gens())
         nm = lambda f: normalise_laurent_polynomial(f/f.lc())
         polynomials = [nm(theta(f)) for f in polynomials if f != 0]
-        self.polynomials = [one(self.ring)] if (1 in polynomials) else polynomials
+        self.polynomials = [self.ring.one()] if (1 in polynomials) else polynomials
         return
 
     def _solvable_conditions(self):
@@ -112,46 +112,8 @@ class SubvarietyOfTorus:
         The number d is the dimension of the Minkowski sum of the Newton
         polytopes of the polynomials in F.
         """
-
-        if not self.polynomials:
-            return (
-                SubvarietyOfTorus(torus_dim=0),
-                SubvarietyOfTorus(torus_dim=self.torus_dim)
-                )
-
-        F = self.polynomials
-        R = self.ring
-        n = R.ngens()
-
-        v = {f:vector(ZZ,f.exponents()[0]) for f in F}
-        logger.debug('Shifts: %s' % v)
-
-        submodule = (ZZ**n).submodule(
-            chain.from_iterable((vector(ZZ,e)-v[f] for e in f.exponents())
-                                for f in F)
-            )
-
-        # Q: Why does 'basis_matrix' produce a matrix over QQ? Makes no sense!
-        D,S,T = matrix(ZZ, submodule.basis_matrix()).smith_form()
-
-        d = submodule.rank()
-        logger.debug('Active submodule has rank %d' % d)
-
-        K = FractionField(R)
-        Rd = PolynomialRing(QQ, d, R.gens()[:d])
-        G = []
-        for f in F:
-            # WARNING: T can have large entries, overflowing Singular's exponents
-            G.append(Rd(
-                    normalise_laurent_polynomial(
-                        K(f([monomial_exp(K,e) for e in T.rows()]))
-                        )
-                    ))
-
-        return (
-            SubvarietyOfTorus(G, torus_dim=d),
-            SubvarietyOfTorus(torus_dim=n-d)
-            )
+        G,d, _ = split_off_torus(self.polynomials)
+        return SubvarietyOfTorus(G, torus_dim=d), SubvarietyOfTorus(torus_dim=self.torus_dim-d)
 
     def simplify_defining_equations(self):
         F = self.polynomials[:]
@@ -177,7 +139,7 @@ class SubvarietyOfTorus:
                     continue
                 if F[i] == 1 or F[i].is_monomial():
                     logger.debug('Variety is empty.')
-                    return SubvarietyOfTorus(polynomials=[one(self.ring)],
+                    return SubvarietyOfTorus(polynomials=[self.ring.one()],
                                              torus_dim=self.torus_dim)
                 for j in xrange(len(F)):
                     if i == j:
@@ -247,11 +209,11 @@ class SubvarietyOfTorus:
 
         if k > n:
             return 0
-
+        
         return (
             (-1)**(n+k) * factorial(n) *
             sum(mixed_volume(chain.from_iterable([q] * a for (q, a) in zip(P, c)))
-                for c in Compositions(n, length=k)
+                for c in MyCompositions(n, length=k)
                 )
             )
 
@@ -259,8 +221,8 @@ class SubvarietyOfTorus:
     def is_nondegenerate(self):
         if not self.polynomials:
             return True
-        return toric.is_nondegenerate(self.polynomials, all_subsets=False)
-
+        from toric import is_nondegenerate
+        return is_nondegenerate(self.polynomials, all_subsets=False, all_initial_forms=True)
 
     @cached_simple_method
     def euler_characteristic(self):

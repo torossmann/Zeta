@@ -12,7 +12,7 @@ import ctypes, gzip, struct
 
 import common
 
-from util import create_logger
+from util import create_logger, TemporaryDirectory, readable_filesize
 logger = create_logger(__name__)
 
 #
@@ -29,12 +29,14 @@ except:
 # form scalar / prod(rays[i][0]*s - rays[i][1], i=1,...,e).
 
 SURF = namedtuple('SURF', ['scalar', 'rays'])
+class SURFError(Exception):
+    pass
 
 _BUFSIZE = 32*1024*1024
-
 INTSIZE = 4
+
 if array('i').itemsize != INTSIZE:
-    raise ArithmeticError('Need sizeof(int) == 4')
+    raise SURFError('Need sizeof(int) == 4')
 
 class SURFSum:
     def __init__(self, filename, compresslevel=9):
@@ -73,14 +75,44 @@ class SURFSum:
 
     def add(self, S):
         if self._file.closed:
-            raise RuntimeError('Lost access to the SURFSum file')
+            raise SURFError('Lost access to the SURFSum file')
 
         self._count += 1
 
         # Binary format:
         # k scalar a[0] b[0] a[1] b[1] ... a[k-1] b[k-1]
-        raw = map(int, [len(S.rays), S.scalar] + flatten(S.rays))
-        self._file.write(array('i', raw).tostring())
+
+        # NOTE:
+        # In rare cases, we can run into numbers that don't fit into 32-bit
+        # integers. We then use an ad hoc hack to reduce to smaller numbers.
+        # To trigger this, count ideals in L(6,11).
+
+        raw = map(int, [len(S.rays), S.scalar])
+        for (a,b) in S.rays:
+            try:
+                _ = array('i', [int(a), int(b)])
+                raw.extend([int(a), int(b)])
+            except OverflowError:
+                if a:
+                    raise SURFError('Ray does not fit into a pair of 32-bit integers')
+            else:
+                continue
+
+            fac = factor(b)
+            li = flatten([[p]*e for (p,e) in fac])
+            li[0] *= fac.unit()
+            # assert b == prod(li)
+            if len(li) % 2 == 0:
+                li[0] = -li[0]
+            # assert -b == prod(-c for c in li)
+            for c in li:
+                raw.extend([int(0), int(c)])
+            raw[0] += len(li)-1
+
+        try:
+            self._file.write(array('i', raw).tostring())
+        except OverflowError:
+            raise SURFError('Number too large to fit into a 32-bit integer')
 
         # Update the candidate denominator.
         E = {}
@@ -97,9 +129,9 @@ class SURFSum:
             if a < 0:
                 a,b = -a, -b
 
-            # (possible) TODO:
-            # Get rid of things like s+1 that cannot show up in the final
-            # result.
+            # (possible, depending on the counting problem) TODO:
+            # Get rid of things like s+1 (for subobjects) that cannot show up
+            # in the final result.
 
             if E.has_key((a,b)):
                 E[(a,b)] += 1
@@ -160,3 +192,117 @@ def _crunch_py(argv):
 
 def crunch(args):
     return _crunch_c(args) if common.libcrunch else _crunch_py(args)
+
+def multicrunch(surfsums, varname=None):
+    """
+    Given an iterable consisting of SURFSums, compute the rational function
+    given by their combined sum.
+    Note that this rational function necessarily has degree <= 0.
+    """
+    
+    surfsums = list(surfsums)
+
+    #
+    # Combine the various critical sets and construct a candidate denominator.
+    #
+
+    critical = set().union(*(Q._critical for Q in surfsums))
+    cand = dict()
+    for Q in surfsums:
+        E = Q._cand
+        for r in E.keys():
+            if not cand.has_key(r) or cand[r] < E[r]:
+                cand[r] = E[r]
+
+    if varname is None:
+        varname = 's'
+
+    R = QQ[varname]
+    s = R.gen(0)
+    g = R(prod((a*s-b)**e for ((a,b),e) in cand.iteritems()))
+    m = g.degree()
+
+    logger.info('Total number of SURFs: %d' % sum(Q._count for Q in surfsums))
+
+    for Q in surfsums:
+        Q._file.flush()
+
+    logger.info('Combined size of data files: %s' %
+         readable_filesize(sum(os.path.getsize(Q._filename) for Q in surfsums))
+         )
+    logger.info('Number of critical points: %d' % len(critical))
+    logger.info('Degree of candidate denominator: %d' % m)
+
+    #
+    # Construct m + 1 non-critical points for evaluation.
+    #
+
+    values = set()
+    while len(values) < m + 1:
+        x = QQ.random_element()
+        if x in critical:
+            continue
+        values.add(x)
+    values = list(values)
+
+    #
+    # Set up parallel computations.
+    #
+
+    bucket_size = ceil(float(len(values))/common.ncpus)
+
+    dat_filenames = [Q._filename for Q in surfsums]
+
+    res_names = []
+    val_names = []
+
+    value_batches = [values[j::common.ncpus] for j in xrange(common.ncpus)]
+
+    with TemporaryDirectory() as tmpdir:
+        for j,v in enumerate(value_batches):
+            if not v:
+                break
+
+            val_filename = os.path.join(tmpdir, 'values%d' % j)
+            val_names.append(val_filename)
+            res_names.append(os.path.join(tmpdir, 'results%d' % j))
+            with open(val_filename, 'w') as val_file:
+                val_file.write(str(len(v)) + '\n')
+                for x in v:
+                    val_file.write(str(x) + '\n')
+
+        def fun(k):
+            ret = crunch(['crunch', val_names[k], res_names[k]]+dat_filenames)
+            if ret == 0:
+                logger.info('Cruncher #%d finished.' % k)
+            return ret
+
+        fun = sage.parallel.decorate.parallel(ncpus=len(res_names))(fun)
+        logger.info('Launching %d crunchers.' % len(res_names))
+
+        for (arg, ret) in fun(range(len(res_names))):
+            if ret == 'NO DATA':
+                raise RuntimeError('A parallel process died')
+            if ret != 0:
+                raise RuntimeError('crunch failed')
+
+        #
+        # Collect results
+        #
+        pairs = []
+
+        for j,rn in enumerate(res_names):
+            it_batch = iter(value_batches[j])
+            with open(rn, 'r') as res_file:
+                for line in res_file:
+                    # We also need to evaluate the candidate denominator 'g'
+                    # from above at the given random points.
+                    x = QQ(next(it_batch))
+                    pairs.append((x, g(x)*QQ(line)))
+            
+    if len(values) != len(pairs):
+        raise RuntimeError('Length of results is off') 
+
+    f = R.lagrange_polynomial(list(pairs))
+    res = SR(f/g)
+    return res.factor() if res else res

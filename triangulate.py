@@ -23,6 +23,7 @@ common.normaliz = my_find_executable('normaliz')
 # via Cone(rays=sc.rays, lattice=ZZ**ambdim, check=False)).
 
 SCONE = namedtuple('SCONE', ['rays', 'multiplicity'])
+from surf import SURF
 
 def _explode_vector(v):
     if len(v) == 0:
@@ -45,8 +46,8 @@ def _triangulate_cone_internal(C):
     rays = list(C.rays())
     if any(a < 0 for r in rays for a in r):
         raise ValueError('Internal triangulation only implemented for non-negative cones.')
-    normalised_rays = [1/v.norm(1) * vector(QQ,v) for v in rays]
-    for indices in PointConfiguration(normalised_rays).triangulate():
+    normalised_rays = [Integer(1)/v.norm(1) * vector(QQ,v) for v in rays]
+    for indices in PointConfiguration(normalised_rays).triangulate() if len(normalised_rays) > 1 else [[0]]:
         subrays = [rays[i] for i in indices]
         multiplicity = prod(a for a in matrix(ZZ,subrays).elementary_divisors() if a != 0)
         yield SCONE(rays=subrays, multiplicity=multiplicity)
@@ -104,3 +105,47 @@ def _triangulate_cone_normaliz(C):
 
 def triangulate_cone(C):
     return _triangulate_cone_normaliz(C) if common.normaliz else _triangulate_cone_internal(C)
+
+def _topologise_scone(sc, Phi):
+    if not sc.rays:
+        raise ValueError('Cannot handle empty scones')
+    if (Phi.nrows() != len(sc.rays[0])) or (Phi.ncols() != 2):
+        raise ValueError('Invalid substitution matrix')
+
+    li = [(int(Phi.column(0)*vector(ZZ,v)),
+           int(Phi.column(1)*vector(ZZ,v))) for v in sc.rays]
+
+    # An element of 'li' of the form (0,b) is really just the
+    # scalar -b in disguise (mind the sign!).
+    # Collect all of those together, cancelling common factors
+    # with the numerator sc.multiplicity.
+
+    rays = []
+    num, den = sc.multiplicity, 1
+    for (a,b) in li: # this becomes 1/(a*s-b) in the SURF
+        if a == 0:
+            den *= (-b)
+        else:
+            rays.append((a,b))
+    g = int(gcd(sc.multiplicity, den))
+    num /= g
+    den /= g
+
+    if den == -1:
+        num, den = -num, 1
+
+    if den != 1:
+        rays.append((0,-den))
+    return SURF(scalar=num, rays=rays)
+
+def topologise_cone(C, Phi):
+    """
+    Turn the cone 'C' into a generator of SURFs via the substitution matrix
+    'Phi'.
+    """
+
+    if C.dim() == 0:
+        raise RuntimeError
+        # return iter([])
+    else:
+        return (_topologise_scone(sc, Phi) for sc in triangulate_cone(C))

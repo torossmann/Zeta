@@ -1,0 +1,13 @@
+************************************************************************
+0.2
+************************************************************************
+
+* Added support for topological representation zeta functions associated
+  with unipotent groups/nilpotent Lie algebras.
+
+* Regularity testing is now much faster due to intermediate torus factor
+  splitting.
+
+* Added more examples.
+
+* Some bugfixes.

@@ -198,6 +198,59 @@ class Algebra:
         return Algebra( table = [[ self.multiply( A[i], A[j] ) * A.inverse() for j in xrange(self.rank) ] for i in xrange(self.rank)],
                         operators = [ A**(-1) * op * A for op in self.operators ]  )
 
+    @cached_simple_method
+    def _Lie_centre(self):
+        # Construc the QQ-space of all z with a*z == z*a == 0 for all a.
+        Z = QQ**self.rank
+        for i in xrange(self.rank):
+            Z = Z.intersection(
+                matrix(QQ, [self.table[i][j] for j in xrange(self.rank)]).left_kernel()       
+            )
+            if self.is_anticommutative() or self.is_commutative():
+                continue
+            Z = Z.intersection(
+                matrix(QQ, [self.table[j][i] for j in xrange(self.rank)]).left_kernel()
+            )
+        return Z
+
+    @cached_simple_method
+    def _adjusted_basis(self):
+        # Construct a basis of 'self' as in (Stasinski & Voll 2014, Section 2.2.2);
+        # we ignore finitely many primes.
+        if not (self.is_Lie() and self.is_nilpotent() and self.rank > 0):
+            raise NotImplementedError()
+
+        Z = self._Lie_centre()
+        D = self.derived_series()[1]
+
+        M = Z.intersection(D)
+        A = Z.intersection(M.complement())
+        B = D.intersection(M.complement())
+        C = (B+M+A).complement()
+        li = list(itertools.chain(C.basis(), B.basis(), M.basis(), A.basis()))
+        return matrix(QQ, [v.denominator()*v for v in li]), (dim(C), dim(B), dim(M), dim(A))
+
+    @cached_simple_method
+    def _commutator_matrices(self):
+        A, dims = self._adjusted_basis()
+        d = dims[1] + dims[2] # = dim of commutator ideal
+        r = dims[0] + dims[1] # = codim of centre
+        ring = PolynomialRing(QQ, 'y', d)
+        y = vector(ring, ring.gens())
+
+        T = self.change_basis(A)
+
+        a = dims[0] ; b = a + d # [a,b) == indices of basis vectors of the commutator ideal
+
+        R = matrix(ring, [
+            [ y * vector(ring, [T.table[i][j][k] for k in xrange(a,b)])
+              for j in xrange(r) ]
+            for i in xrange(r) ]
+                  )
+        # get last dims[1] columns
+        S = (R.transpose()[r-dims[1]:r]).transpose()
+        return R, S
+
     def toric_datum(self, objects='subalgebras', name='x'):
         """Construct a toric datum associated with the enumeration of subobjects.
 
@@ -321,3 +374,42 @@ class Algebra:
 
     def __repr__(self):
         return '%s(**%s)' % (self.__class__, self.__dict__)
+
+def tensor_with_duals(L):
+    n = L.rank
+    shift = n * [n]
+    zero  = n * [0]
+
+    def f(i,j):
+        if i < n and j < n:
+            return list(L.table[i][j]) + zero
+        elif i < n and j >= n:
+            return zero + list(L.table[i][j-n])
+        elif i >= n and j < n:
+            return zero + list(L.table[i-n][j])
+        else:
+            return zero + zero
+    return Algebra(table=[[f(i,j) for j in xrange(2*n)] for i in xrange(2*n)])
+
+def tensor_with_3duals(L):
+    n = L.rank
+    shift = n * [n]
+    zero  = n * [0]
+
+    def f(i,j):
+        if i < n and j < n:
+            return list(L.table[i][j]) + zero + zero 
+        elif i < n and n <= j < 2*n:
+            return zero + list(L.table[i][j-n]) + zero
+        elif i < n and 2*n <= j:
+            return zero + zero + list(L.table[i][j-2*n])
+        elif n <= i < 2*n and j < n:
+            return zero + list(L.table[i-n][j]) + zero
+        elif n <= i < 2*n and n <= j < 2*n:
+            return zero + zero + list(L.table[i-n][j-n])
+        elif 2*n <= i and j < n:
+            return zero + zero + list(L.table[i-2*n][j])
+        else:
+            return zero + zero + zero
+    return Algebra(table=[[f(i,j) for j in xrange(3*n)] for i in xrange(3*n)])
+

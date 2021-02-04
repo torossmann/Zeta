@@ -5,11 +5,12 @@ from sage.all import *
 
 from convex import conify_polyhedron, \
     is_contained_in_dual, dual_cone_as_polyhedron, \
-    inner_open_normal_fan, get_point_in_polyhedron
+    inner_open_normal_fan, get_point_in_polyhedron, \
+    DirectProductOfPolyhedra, linear_image_of_polyhedron
 
 from util import normalise_poly, monomial_log, \
     subpolynomial_meet, is_subpolynomial, initial_form_by_direction, \
-    unzip, cached_simple_method, minimal_elements
+    unzip, cached_simple_method, minimal_elements, split_off_torus
 
 import common
 import itertools
@@ -17,16 +18,42 @@ import itertools
 from util import create_logger
 logger = create_logger(__name__)
 
+def relative_initial_forms(F, polyhedron=None, split=True):
+    if not F:
+        raise ValueError('need non-empty collection of polynomials')
+
+    if split:
+        G, d, A = split_off_torus(F)
+        N = sum(g.newton_polytope() for g in G)
+        n = A.nrows()
+    else:
+        N = sum(f.newton_polytope() for f in F)
+        n = N.ambient_dim()
+
+    if polyhedron is None:
+        polyhedron = Polyhedron(ieqs=[(n+1)*(0,)])
+
+    for Q in inner_open_normal_fan(N):
+        if split:
+            Q = linear_image_of_polyhedron(DirectProductOfPolyhedra(Q, Polyhedron(ieqs=[(n-d+1)*(0,)])),
+                                           A.transpose())
+        Q &= polyhedron
+        if Q.dim() == -1:
+            continue
+        y = get_point_in_polyhedron(Q)
+        yield [initial_form_by_direction(f, y) for f in F], Q
+
+    
 def belongs_to_radical(f, I):
     """Test if f in I.radical().
     """
 
-    R = QQ[I.ring().variable_names() + ('Zoo',)]
+    R = PolynomialRing(QQ, I.ring().ngens()+1, I.ring().variable_names() + ('Zoo',))
     Zoo = R.gens()[-1]
     J = R.ideal([R(g) for g in I.gens()] + [R(1) - Zoo*R(f)])
     return [R(1)] == J.groebner_basis(algorithm='singular' if common.plumber else '')
 
-def is_nondegenerate(F, all_subsets=True):
+def is_nondegenerate(F, all_subsets=True, all_initial_forms=True, collision_handler=None):
     # NOTE: Setting all_subsets=False gives exactly Khovanskii's original
     # non-degeneracy condition.
 
@@ -34,30 +61,23 @@ def is_nondegenerate(F, all_subsets=True):
     if not F:
         return True
 
-    R = F[0].parent()
-    n = R.ngens()
+    if 0 in F:
+        raise NotImplementedError()
 
-    N = sum(f.newton_polytope() for f in F) # Does this leak?
-
-    logger.debug('Newton-Khovanskii-Minkowski-polytope: %s' % N)
-
-    for Q in inner_open_normal_fan(N):
-        y = get_point_in_polyhedron(Q)
-
-        assert Q.dim() >= 0, 'Unrestricted open normal cones should never be empty'
-
-        G = [initial_form_by_direction(f,y) for f in F]
-
+    for G, _ in relative_initial_forms(F) if all_initial_forms else [(F,None)]:
+        # NOTE: we could do the torus factor splitting for each subset separately.
+        G, _, _ = split_off_torus(G)
         logger.debug('Restricted polynomials: %s' % G)
 
+        R = G[0].parent()
         jac = jacobian(G, R.gens())
 
         idx = [i for i in xrange(len(G)) if not G[i].is_monomial()]
-        logger.debug('Active indices: %s' % idx)
-
-        S = Subsets(idx) if all_subsets else [idx]
         if not all_subsets and len(idx) < len(G):
             continue # empty variety!
+
+        logger.debug('Active indices: %s' % idx)
+        S = Subsets(idx) if all_subsets else [idx]
 
         for J in S:
             if not J:
@@ -65,6 +85,8 @@ def is_nondegenerate(F, all_subsets=True):
             I = R.ideal([G[j] for j in J] + matrix(R,[jac[j] for j in J]).minors(len(J)))
             if not belongs_to_radical(prod(R.gens()), I):
                 logger.debug('Collision: %s' % J)
+                if collision_handler is not None:
+                    collision_handler(J)
                 return False
     return True
 
@@ -313,44 +335,24 @@ class ToricDatum:
             yield self
             return
 
-        # Get indices of conditions with undetermined initials and
-        # the lengths of the corresponding RHS.
-        idx, weights = unzip([(i,len(self.rhs[i].monomials())) for i in xrange(len(self.cc)) if self.initials[i] is None])
-        
-        # N : polytope ; J : indices of newly balanced conditions
+        idx, weights = unzip((i,len(f.monomials())) for i,f in enumerate(self.rhs) if self.initials[i] is None)
 
         if strategy == 'full':
-            N = sum(self.rhs[i].newton_polytope() for i in idx)
-            # This ^^^ might leak!
             J = idx
-        elif strategy == 'max':
-            J = [ idx[weights.index(max(weights))] ]
-            N = self.rhs[J[0]].newton_polytope()
-            logger.debug('Max-balancing (%d) %s' % (J[0], self.rhs[J[0]]))
         elif strategy == 'min':
             J = [ idx[weights.index(min(weights))] ]
-            N = self.rhs[J[0]].newton_polytope()
-            logger.debug('Min-balancing (%d) %s' % (J[0], self.rhs[J[0]]))
+        elif strategy == 'max':
+            J = [ idx[weights.index(max(weights))] ]
         else:
             raise TypeError('unknown balancing strategy')
 
-        for Q in inner_open_normal_fan(N):
-
+        for F, Q in relative_initial_forms([self.rhs[j] for j in J], self.polyhedron):
             new_initials = self.initials[:]
-            Q &= self.polyhedron
-
-            if Q.dim() == -1:
-                logger.debug('Found an invisible face.')
-                continue
-
-            y = get_point_in_polyhedron(Q)
-
-            for j in J:
-                new_initials[j] = initial_form_by_direction(self.rhs[j], y)
-
+            for (j,f) in itertools.izip(J, F):
+                new_initials[j] = f
             yield ToricDatum( ring=self.ring, integrand=self.integrand,
-                                      cc=self.cc, initials=new_initials,
-                                      polyhedron=Q, depth=self._depth )
+                              cc=self.cc, initials=new_initials,
+                              polyhedron=Q, depth=self._depth )
 
     def order(self):
         if self._ordered:
@@ -387,28 +389,10 @@ class ToricDatum:
 
         if self.is_empty():
             return True
-
         if not self.is_balanced():
             return False
-
-        R = self.ring
-        n = R.ngens()
-        jac = jacobian(self.initials, R.gens())
-
-        # Profound observation: monomials don't have torus points
-        idx = [i for i in xrange(len(self.cc)) if not self.initials[i].is_monomial()]
-        for J in Subsets(idx):
-            if not J:
-                continue
-
-            I = R.ideal([self.initials[j] for j in J] + matrix([jac[j] for j in J]).minors(len(J)))
-            # NOTE: for len(J) > n, there are no len(J)xlen(J) minors so we
-            # end up checking if there are any torus points.
-            if not belongs_to_radical(prod(R.gens()), I):
-                logger.debug( 'Collision: %s' % J)
-                self._coll_idx = J
-                return False
-        return True
+        return is_nondegenerate(self.initials, all_subsets=True, all_initial_forms=False,
+                                collision_handler=lambda J: setattr(self, '_coll_idx', J))
 
     def reduce(self, i, j, term_i=None, term_j=None, strict=False):
         """

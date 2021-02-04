@@ -2,6 +2,7 @@
 """
 
 from sage.all import *
+from itertools import chain
 from distutils.spawn import find_executable
 from pkg_resources import resource_exists, resource_filename
 
@@ -164,3 +165,46 @@ def squarefree_part(f):
         return f
     R = f.parent()
     return R(prod(h for h,_ in f.factor()))
+
+def split_off_torus(F):
+    # Given a list F of polynomials, return G,d,T where len(F) == len(G)
+    # and G consists of polynomials in d variables; T = change of basis.
+    # There exists A in GL(n,ZZ) s.t. F[i]^A == G[i] * (Laurent term).
+    # In particular, F is non-degenerate relative to {0} iff this the case
+    # for G; cf Remark 4.3(ii) and Lemma 6.1(ii) in arXiv:1405.5711.
+    #
+    # The number of variables in G is the dimension of Newton(prod(F)).
+    #
+
+    if not F:
+        return [], 0, None
+
+    R = F[0].parent()
+    v = {f:vector(ZZ,f.exponents()[0]) for f in F}
+    submodule = (ZZ**R.ngens()).submodule(chain.from_iterable((vector(ZZ,e)-v[f] for e in f.exponents()) for f in F))
+    _,_,T = matrix(ZZ, submodule.basis_matrix()).smith_form()
+    d = submodule.rank()
+    Rd = PolynomialRing(QQ, d, R.gens()[:d])
+    K = FractionField(R)
+    return [Rd(normalise_laurent_polynomial(K(f([monomial_exp(K,e) for e in T.rows()])))) for f in F], d, T
+
+def principal_minors(A, size):
+    m = A.nrows()
+    n = A.ncols()
+    r = min(m, n)
+    li = []
+    for idx in Subsets(range(r), size):
+        idx = list(idx)
+        li.append(A.base_ring()(A.matrix_from_rows_and_columns(idx, idx).determinant()))
+    return li
+
+def MyCompositions(n,length):
+    if n < length or not length:
+        return
+    if length==1:
+        yield [n]
+        return
+
+    for i in xrange(1, n-length+2):
+        for c in MyCompositions(n-i, length-1):
+            yield [i] + c

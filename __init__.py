@@ -1,7 +1,7 @@
 #
 # Zeta.
 #
-# Copyright 2014 Tobias Rossmann.
+# Copyright 2014, 2015 Tobias Rossmann.
 #
 # This package is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -17,19 +17,28 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.1'
-__date__ = 'Sep 2014'
+__version__ = '0.2'
+__date__ = 'Mar 2015'
 
 import common
 import examples
 
+from subobjects import SubobjectZetaProcessor
+from reps import RepresentationProcessor
+
 from algebra import Algebra
-from reduction import ReductionError, Reductor
+from abstract import ReductionError
 from toric import ToricDatum
 from util import create_logger
 
 import surf
-import topological 
+import abstract
+import subobjects
+import reps
+
+from laurent import LaurentPolynomial
+
+from subobjects import Strategy
 
 from sage.all import Integer, Infinity, var
 
@@ -37,7 +46,8 @@ common.VERSION = __version__
 
 logger = create_logger(__name__)
 
-from reduction import Strategy
+from reps import IgusaProcessor
+
 class Profile:
     SAVE_MEMORY = 1
     NORMAL = 2
@@ -60,7 +70,7 @@ def lookup(entry=None, what=None):
         return examples.names[i]
     return examples.topzetas[i].get(what, None)
 
-def topological_zeta_function(L, objects='subalgebras', optimise_basis=False,
+def topological_zeta_function(L, objects, optimise_basis=False,
                               ncpus=None, strategy=None, profile=None, verbose=False):
     # Multiprocessing.
     if ncpus is None:
@@ -89,7 +99,7 @@ def topological_zeta_function(L, objects='subalgebras', optimise_basis=False,
 
     if verbose:
         from logging import INFO, DEBUG
-        loglevels = [(logger, INFO), (reduction.logger, INFO), (topological.logger, INFO), (surf.logger, INFO), (torus.logger, INFO)]
+        loglevels = [(logger, INFO), (surf.logger, INFO), (torus.logger, INFO), (abstract.logger, INFO), (reps.logger, DEBUG), (subobjects.logger, INFO)]
         oldlevels = []
 
         for m,level in loglevels:
@@ -97,28 +107,64 @@ def topological_zeta_function(L, objects='subalgebras', optimise_basis=False,
             oldlevels.append(old)
             m.setLevel(min(old,level))
 
-    # Construct toric datum.
-    if not isinstance(L, algebra.Algebra) and not isinstance(L, ToricDatum):
+    # Try to detect polynomials and lists of polynomials.
+    polynomials = None
+    try:
+        _ = L.exponents()
+    except:
+        try:
+            if not isinstance(L, basestring):
+                polynomials = list(L)
+        except:
+            pass
+    else:
+        polynomials = [L]
+    
+    if (polynomials is None) and not isinstance(L, algebra.Algebra):
         L = lookup(L)
-    if isinstance(L,algebra. Algebra) and optimise_basis:
+
+    if polynomials is not None:
+        proc = IgusaProcessor(*polynomials)
+    elif objects in ['subalgebras', 'ideals']:
+        proc = SubobjectZetaProcessor(L, objects, strategy=strategy)
+    elif objects == 'reps':
+        proc = RepresentationProcessor(L)
+    else:
+        raise ValueError('unknown objects')
+
+    if optimise_basis:
         logger.info('Searching for a good basis...')
-        A = L.find_good_basis(objects)
-        L = L.change_basis(A)
+        proc.optimise()
         logger.info('Picked a basis.')
-    T = L if isinstance(L, ToricDatum) else L.toric_datum(objects)
 
     if verbose:
-        print T
+        print proc
 
     try:
-        return topological.evaluate(T, Reductor(strategy))
-    #except reduction.ReductionError as e:
-    #   logger.info('Failed to compute this topological zeta function: %s' % e)
-    #   return None
+        return proc.topologically_evaluate(shuffle=True)
     finally:
         if verbose:
             for ((m,_),level) in zip(loglevels,oldlevels):
                 m.setLevel(level)
+
+def top(L, objects='subalgebras', filename=None, 
+        optimise_basis=True, save_memory=False, ncpus=None, verbose=True):
+    Z = topological_zeta_function(L,
+                                  objects=objects,
+                                  optimise_basis=optimise_basis,
+                                  strategy=Strategy.PREEMPTIVE,
+                                  profile=Profile.SAVE_MEMORY if save_memory else Profile.NORMAL,
+                                  ncpus=ncpus,
+                                  verbose=verbose)
+
+    if filename is True:
+        if not isinstance(L, basestring):
+            raise ValueError
+        filename = objects + '-' + L
+
+    if filename:
+        with open(filename, 'w') as f: f.write(str(Z))
+    return Z
 
 if not common.normaliz:
     logger.warn('Normaliz not found. Triangulation will be slow.')

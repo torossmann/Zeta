@@ -1,5 +1,6 @@
 libcrunch = None
-ncpus = None
+from multiprocessing import cpu_count
+ncpus = cpu_count()
 normaliz = None
 debug = False
 disklist = False
