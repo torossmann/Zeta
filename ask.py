@@ -13,26 +13,50 @@ from laurent import LaurentIdeal, LaurentPolynomial
 from torus import SubvarietyOfTorus
 from abstract import LocalZetaProcessor
 
+def bullet_dual(A):
+    R = A.base_ring()
+    S = PolynomialRing(QQ, 'z', A.ncols())
+    fun = lambda v: sum(a*x for (a,x) in zip(v,S.gens()))
+    I = identity_matrix(S,A.nrows())
+    J = identity_matrix(S,R.ngens())
+    return matrix(S,[[fun(e * A(*(f.list()))) for f in J] for e in I])
+
+def circ_dual(A):
+    R = A.base_ring()
+    S = PolynomialRing(QQ, 'x', A.nrows())
+    xx = vector(S, S.gens())
+    basis = [evaluate_matrix(A, y) for y in identity_matrix(QQ, R.ngens())]
+    return matrix(S, [xx * matrix(S,A) for A in basis])
+
 class AskProcessor(RepresentationProcessor):
     def __init__(self, arg, mode=None):
         if mode is None:
             mode = 'O'
 
-        if mode not in ['O', 'K']:
-            raise ValueError("supported modes are 'O' and 'K'")
-        
+        if mode not in ['O', 'K', 'BO', 'BK', 'TO', 'TK']:
+            raise ValueError("invalid mode")
+
+        self.translation = SR('q')**(arg.nrows()-arg.ncols()) if 'T' in mode else None
         self.R = arg
+        for x in mode[:-1]:
+            if x == 'B':
+                self.R = bullet_dual(self.R)
+            elif x == 'T':
+                self.R = self.R.transpose()
+            else:
+                raise ValueError
+            
         self.d = self.R.nrows()
         self.e = self.R.ncols()
-        self.mode = mode
 
+        self.mode = mode[-1]
         self.ring = self.R.base_ring()
         self.ell = self.ring.ngens()
 
         self.basis = [evaluate_matrix(self.R, y) for y in identity_matrix(QQ, self.ell)]
         V = (QQ**(self.d * self.e)).subspace([A.list() for A in self.basis])
-        if V.dimension() != self.ell:
-            raise ValueError('subspace parameterised by matrix of linear forms has wrong dimension')
+        #if V.dimension() != self.ell:
+        #    raise ValueError('subspace parameterised by matrix of linear forms has wrong dimension')
 
     def padically_evaluate_regular(self, datum):
         # The essential change from representation zeta functions is that
@@ -103,7 +127,8 @@ class AskProcessor(RepresentationProcessor):
     def padically_evaluate(self, shuffle=False):
         if self.root() is None:
             return SR(1)
-        return ((1 - SR('q')**(-1))**(-1) * LocalZetaProcessor.padically_evaluate(self, shuffle=shuffle)).factor()
+        r = ((1 - SR('q')**(-1))**(-1) * LocalZetaProcessor.padically_evaluate(self, shuffle=shuffle)).factor()
+        return r if self.translation is None else r(t=self.translation * SR('t')).factor()
 
     def __repr__(self):
         if self.root() is not None:

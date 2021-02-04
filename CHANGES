@@ -1,4 +1,14 @@
 ************************************************************************
+0.4
+************************************************************************
+
+* Added functionality for computing ask zeta functions associated with
+  graphs and hypergraphs.
+  
+* Various smaller changes to improve compatibility with recent versions
+  of Sage.
+
+************************************************************************
 0.3.2
 ************************************************************************
 

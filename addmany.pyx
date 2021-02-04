@@ -1,3 +1,5 @@
+# cython: language_level=2
+
 import common
 import sage.all
 import sage.interfaces

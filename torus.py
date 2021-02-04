@@ -59,7 +59,7 @@ class SubvarietyOfTorus:
         # Map everything into our 'reference polynomial ring' and normalise.
         theta = R.hom(self.ring.gens())
         nm = lambda f: normalise_laurent_polynomial(f/f.lc())
-        polynomials = [nm(theta(f)) for f in polynomials if f != 0]
+        polynomials = list(set([nm(theta(f)) for f in polynomials if f != 0]))
         self.polynomials = [self.ring.one()] if (1 in polynomials) else polynomials
         return
 
@@ -158,6 +158,10 @@ class SubvarietyOfTorus:
                     logger.debug('Variety is empty.')
                     return SubvarietyOfTorus(polynomials=[self.ring.one()],
                                              torus_dim=self.torus_dim)
+
+                # Discard multiplicities and monomial factors.
+                F[i] = self.ring.prod(f for f,_ in F[i].factor() if not f.is_monomial())
+                
                 for j in xrange(len(F)):
                     if i == j:
                         continue
@@ -185,11 +189,6 @@ class SubvarietyOfTorus:
                         for ti in terms_of_polynomial(F[i]):
                             for tj in terms_of_polynomial(F[j]):
                                 g = gcd(ti,tj)
-
-                                # BEGIN HACK
-                                #if g == 1:
-                                #    continue
-                                # END HACK
 
                                 r = (tj//g) * F[i] - (ti//g) * F[j]
                                 r = squarefree_part(r)
@@ -290,10 +289,40 @@ class SubvarietyOfTorus:
             else:
                 return symbolic_variable(V)
 
-        logger.debug('Trying to decompose the variety...')
         F = V.polynomials
         I = range(len(F))
+            
+        logger.debug('Factoring polynomials')
+        
+        # Try to use inclusion-exclusion and a factorisation to count points.
+        for i,f in enumerate(F):
+            fac = [g for g,_ in f.factor()] # drop multiplicities
+            if len(fac) == 1:
+                continue
 
+            g = fac[0]
+            h = V.ring.prod(fac[1:])
+
+            li = [g if j == i else F[j] for j in range(len(F))]
+            xi = [h if j == i else F[j] for j in range(len(F))]
+            zi = li + [h]
+            
+            U = SubvarietyOfTorus(li, V.torus_dim)
+            W = SubvarietyOfTorus(xi, V.torus_dim)
+            Z = SubvarietyOfTorus(zi, V.torus_dim)
+
+            try:
+                res = U._count_general(level) + W._count_general(level) - Z._count_general(level)
+            except CountException:
+                pass
+            else:
+                logger.debug('Successfully used a factorisation.')
+                logger.debug('U = %s' % U.polynomials)
+                logger.debug('W = %s' % W.polynomials)
+                logger.debug('Z = %s' % Z.polynomials)
+                return res
+            
+        logger.debug('Trying to decompose the variety...')
         for (i,x,g) in V._solvable_conditions():
             # NOTE: We need to specify the number of variables in the following
             # line for otherwise Sage might use a UNIVARIATE polynomial ring;
@@ -343,7 +372,7 @@ class SubvarietyOfTorus:
                 logger.debug('Wv = %s' % Wv.polynomials)
                 logger.debug('Z = %s' % Z.polynomials)
                 return res
-
+       
         logger.debug('SubvarietyOfTorus._count_general failed. Defining polynomials: %s' % self.polynomials)
 
         if level < 2:

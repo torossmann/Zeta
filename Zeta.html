@@ -19,8 +19,8 @@ and modules</title>
 <script type="text/x-mathjax-config">
   MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
 </script>
-<script type="text/javascript" src=
-"https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+<script type="text/javascript" async
+	src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> 
 </script>
 </head>
 <body>
@@ -42,9 +42,9 @@ Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a
 Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
 ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 
-                                                                Version 0.3.2
+                                                                  Version 0.4
                              by
-                                 <a href="http://www.math.uni-bielefeld.de/~rossmann">Tobias Rossmann</a>
+                                 <a href="http://www.maths.nuigalway.ie/~rossmann">Tobias Rossmann</a>
   
 </pre>
 <hr>
@@ -67,6 +67,7 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <li><a href="#modules">Modules and algebras with operators</a></li>
 <li><a href="#average">Average sizes of kernels</a></li>
 <li><a href="#conjugacy">Conjugacy class zeta functions</a></li>
+<li><a href="#graphs">Graphs and hypergraphs</a></li>
 </ol>
 </li>
 <li><a href="#db">The built-in database of examples</a>
@@ -87,6 +88,7 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 </ol>
 </li>
 <li><a href="#references">References</a></li>
+<li><a href="#funding">Funding</a></li>
 <li><a href="#license">License</a></li>
 <li><a href="#contact">Contact</a></li>
 </ol>
@@ -94,27 +96,26 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <h1 id="description">1. Description</h1>
 <!--====================================================================-->
 <p>Zeta provides methods for computing local and topological zeta functions
-arising from the enumeration of subalgebras, ideals, submodules,
-and representations of suitable algebraic structures as well as some
-other types of zeta functions.
-For theoretical background and descriptions of the 
-methods used, see [<a href="#topzeta">1</a>,<a href=
-"#topzeta2">2</a>,<a href="#unipotent">3</a>,<a href="#padzeta">4</a>,<a href="#ask">5</a>].
-Zeta is distributed as a <a href="http://www.python.org">Python</a>-package for the computer algebra
-system <a href="http://sagemath.org/">Sage</a>.
-In addition to <a href="https://www.singular.uni-kl.de">Singular</a> and other
-  software included with Sage,
-Zeta also relies on <a href="https://www.math.ucdavis.edu/~latte/software.php">LattE integrale</a>
-and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz">Normaliz</a>.</p>
-
-<p>This work is supported by the
-  <a href="https://www.humboldt-foundation.de">Alexander von
-    Humboldt-Foundation</a>.
-  From 2013&ndash;2016, the development of Zeta was supported by the
-  <a href="http://www.dfg.de">DFG</a> Priority Programme
-  &ldquo;<a href="https://spp.computeralgebra.de">Algorithmic and
-  Experimental Methods in Algebra, Geometry and Number Theory</a>&rdquo;. 
+  arising from the enumeration of subalgebras, ideals, submodules,
+  representations, and conjugacy classes of suitable algebraic structures,
+  as well as some other types of zeta functions.
+  For theoretical background and descriptions of the 
+  methods used, see
+  [<a href="#topzeta">1</a>,
+  <a href="#topzeta2">2</a>,
+  <a href="#unipotent">3</a>,
+  <a href="#padzeta">4</a>,
+  <a href="#ask">5</a>,
+  <a href="#ask2">6</a>,
+  <a href="#cico">7</a>].
+  Zeta is distributed as a <a href="http://www.python.org">Python</a>-package
+  for the computer algebra system <a href="http://sagemath.org/">Sage</a>.
+  In addition to <a href="https://www.singular.uni-kl.de">Singular</a> and other
+  software included with Sage, Zeta also relies on
+  <a href="https://www.math.ucdavis.edu/~latte/software.php">LattE integrale</a>
+  and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz">Normaliz</a>.
 </p>
+
 <!--====================================================================-->
 <h1 id="download">2. Download and setup</h1>
 <!--====================================================================-->
@@ -123,7 +124,7 @@ and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz">Normaliz</a>.</p
 <!--====================================================================-->
 <p>This software requires a recent version
   of <a href="http://sagemath.org/">Sage</a>.
-  Zeta 0.3.2 has been developed for Sage 7.4
+  Zeta 0.4 has been developed for Sage 8.8
   on 64-bit Linux (x86_64) systems; other platforms and versions of
   Sage may or may not work as expected.</p>
 <!--====================================================================-->
@@ -133,7 +134,7 @@ and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz">Normaliz</a>.</p
 <p>
 On a 64-bit Linux (x86_64) system, the easiest way to
 install Zeta is to download the 
-<a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2-x86_64.tar.bz2">
+<a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4-x86_64.tar.bz2">
 binary distribution</a> and extract it into some directory,
 <code>$DIR</code> say.
 This will create a subdirectory
@@ -161,7 +162,7 @@ shell. Alternatively, for a temporary solution, after executing</p>
 <h3>Option 2: compile from sources</h3>
 <p>As an alternative to the binary distribution, you may also download the
 <a href=
-"http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2.tar.bz2">
+"http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4.tar.bz2">
 sources</a> of Zeta;
 you will then have to run <code>make</code> from within <code>$DIR/Zeta</code>.</p>
 
@@ -179,9 +180,9 @@ programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~la
   file <code>maple.cpp</code> included with Zeta.
   In order to compile the patched version of LattE integrale 1.7.3 from
   scratch, you may want to
-  use <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/latte-integrale-1.7.3-for-Zeta.tar">this
+  use <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/latte-integrale-1.7.3-for-Zeta.tar">this
   modified version</a> 
-  (26M) of the <a href="https://www.math.ucdavis.edu/~latte/software/packages/latte_current/latte-integrale-1.7.3.tar.gz">LattE integrale 1.7.3 bundle</a>.
+  (26M) of the LattE integrale 1.7.3 bundle.
 </p> 
 
 <!--====================================================================-->
@@ -192,53 +193,47 @@ programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~la
     <table border="1" summary="Releases">
       <tr> <th>File</th> <th>Size</th> <th>Released</th> </tr>
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2-x86_64.tar.bz2">Zeta-0.3.2-x86_64.tar.bz2</a>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4-x86_64.tar.bz2">Zeta-0.4-x86_64.tar.bz2</a>
       (binary distribution)</td>
-      <td>3.7M</td>
-        <td> 09/04/2017</td>
+      <td>3.4M</td>
+        <td>26/08/2019</td>
 	</tr>
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2.tar.bz2">Zeta-0.3.2.tar.bz2</a>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4.tar.bz2">Zeta-0.4.tar.bz2</a>
+      </td>
+      <td>128K</td>
+        <td>26/08/2019</td>
+	</tr>
+      <tr>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.3.2.tar.bz2">Zeta-0.3.2.tar.bz2</a>
       </td>
       <td>116K</td>
         <td> 09/04/2017</td>
 	</tr>
-      <!-- <tr> -->
-      <!-- <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1-x86_64.tar.bz2">Zeta-0.3.1-x86_64.tar.bz2</a> -->
-      <!-- (binary distribution)</td> -->
-      <!-- <td>3.7M</td> -->
-      <!--   <td> 26/07/2016 </td> -->
-      <!-- 	</tr> -->
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">Zeta-0.3.1.tar.bz2</a>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">Zeta-0.3.1.tar.bz2</a>
       </td>
       <td>108K</td>
         <td> 26/07/2016 </td>
 	</tr>
-      <!--<tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3-x86_64.tar.bz2">Zeta-0.3-x86_64.tar.bz2</a>
-      (binary distribution)</td>
-      <td>3.7M</td>
-        <td> 02/02/2016 </td>
-	</tr>-->
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.tar.bz2">Zeta-0.3.tar.bz2</a>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.3.tar.bz2">Zeta-0.3.tar.bz2</a>
       </td>
       <td>108K</td>
         <td> 02/02/2016 </td>
 	</tr>
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.2.1.tar.bz2">Zeta-0.2.1.tar.bz2</a> </td>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.2.1.tar.bz2">Zeta-0.2.1.tar.bz2</a> </td>
       <td>72K</td>
         <td> 19/06/2015 </td>
 	</tr>
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.2.tar.bz2">Zeta-0.2.tar.bz2</a> </td>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.2.tar.bz2">Zeta-0.2.tar.bz2</a> </td>
       <td>72K</td>
         <td> 06/03/2015 </td>
 	</tr>
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.1.tar.bz2">Zeta-0.1.tar.bz2</a> </td>
+      <td> <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.1.tar.bz2">Zeta-0.1.tar.bz2</a> </td>
       <td>56K</td>
         <td> 17/09/2014 </td>
       </tr>
@@ -246,7 +241,7 @@ programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~la
   </center>
 <p>
 You might also be interested in the 
-<a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/topzetas.txt">list</a>
+<a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/topzetas.txt">list</a>
 of algebras and associated topological zeta functions computed using Zeta.</p>
 
 <!--====================================================================-->
@@ -464,10 +459,11 @@ For a single polynomial, the method used by Zeta is very closely related to
   combinatorial formulae of <a href="http://dx.doi.org/10.2307/2152708">Denef and Loeser</a> and 
 <a href="http://dx.doi.org/10.1006/jnth.2000.2606">Denef and Hoornaert</a>.
 In order to attempt to compute topological or generic local zeta functions
-associated with a polynomial (or a polynomial mapping), simply pass a
+associated with a polynomial (or a polynomial mapping), pass a
 multivariate polynomial (or a list of these)
 to <code>Zeta.topological_zeta_function</code>
-or <code>Zeta.local_zeta_function</code>, respectively.
+or <code>Zeta.local_zeta_function</code>, respectively
+while providing <code>'poly'</code> as the second argument.
 </p>
 
 <h4>Example (Igusa-type zeta functions)</h4>
@@ -477,13 +473,13 @@ $f$ and $(f,g)$, where $f = X^3 - XYZ$ and $g = X^2 - Y^2$.
 <pre><code>sage: R.&lt;x,y,z&gt; = QQ[]
 sage: f = x^3 -x*y*z
 sage: g = x^2 - y^2
-sage: Zeta.local_zeta_function(f)
+sage: Zeta.local_zeta_function(f, 'poly')
 (q^4 + q^2*t^2 - q^3 - 2*q^2*t - q*t^2 + q^2 + t^2)*(q - 1)/((q^2 + q*t + t^2)*(q - t)^3)
-sage: Zeta.topological_zeta_function(f)
+sage: Zeta.topological_zeta_function(f, 'poly')
 1/3*(s^2 + 2*s + 3)/(s + 1)^3
-sage: Zeta.local_zeta_function([f,g])
+sage: Zeta.local_zeta_function([f,g], 'poly')
 (q^2 + 2*q + t)*(q - 1)^2/((q^2 - t)*(q + t)*(q - t))
-sage: Zeta.topological_zeta_function([f,g])
+sage: Zeta.topological_zeta_function([f,g], 'poly')
 2/((s + 2)*(s + 1))</code></pre>
 <hr>
 
@@ -541,7 +537,7 @@ subalgebra and submodule zeta functions.</p>
 
 <p>
   Subject to the same restrictions as above, Zeta supports the
-  computation of the (local) &ldquo;ask zeta functions&rdquo; defined and studied in [<a href="#ask">5</a>].
+  computation of the (local) &ldquo;ask zeta functions&rdquo; defined and studied in [<a href="#ask">5</a>,<a href="#ask">6</a>].
 </p>
 
 <p>
@@ -576,6 +572,8 @@ elements of $M_n$ acting by right-multiplication on $(\mathfrak{O}/\mathfrak{P}^
   using the functions $\mathrm{K}_M$ (<code>mode='K'</code>)
   or $\mathrm{O}_M$ (<code>mode='O'</code>) from [<a href="ask">5</a>, &sect;4],
   respectively; the default is <code>mode='O'</code>.
+  To perform a computation using the &ldquo;bullet dual&rdquo; operation from
+  [<a href="ask2">6</a>, &sect;4], use <code>mode='BK'</code>.
   </p>
 
 <!--====================================================================-->
@@ -618,6 +616,150 @@ interpretation as in <a href="#average">&sect;3.6</a>.</p>
 <code>sage: L = Zeta.Algebra([[(0, 0, 0), (0, 0, 1), (0, 0, 0)], [(0, 0,-1), (0, 0, 0), (0, 0, 0)], [(0, 0, 0), (0, 0, 0), (0, 0, 0)]])
 sage: Zeta.local_zeta_function(L, 'cc')
 -(t - 1)/((q^2*t - 1)*(q*t - 1))
+</code></pre>
+<hr>
+
+<!--====================================================================-->
+<h2 id="graphs">3.8. Graph and hypergraphs</h2>
+<!--====================================================================-->
+
+<p>Zeta supports the computation of the rational functions $W_H(q,t)$
+  and $W^\pm_G(q,t)$ introduced and studied in [<a href="#cico">7</a>].
+  These functions are the uniform ask zeta functions associated with
+  modules of suitable types of matrices with support constraints defined by a
+  hypergraph $H$ or graph $G$, respectively.
+  By [<a href="#cico">7</a>, Cor. B], the functions $W^-_G(q,t)$ 
+  enumerate conjugacy classes of suitable groups derived from $G$.
+  The same is true of the functions $W_H(q,t)$ whenever $H$ is a modelling
+  hypergraph of a cograph; see [<a href="#cico">7</a>, Thm D].
+</p>
+
+<!--====================================================================-->
+<h3>Hypergraphs</h3>
+<!--====================================================================-->
+<p>
+  Hypergraphs can be specified using incidence matrices.
+  An $n\times m$ $(0,1)$-matrix $A = [a_{ij}]$ defines a hypergraph
+  $H$ on the vertex set $\{0,\dotsc,n-1\}$ with hyperedges
+  $e_0,\dotsc,e_{m-1}$, where the support of $e_j$ is the set of those $i =
+  0,\dotsc,n-1$ with $a_{i+1,j+1} = 1$.
+  The rational function $W_H(q,t)$ can be computed
+  using <code>Zeta.local_zeta_function(A, 'inc')</code>.
+</p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<p>
+  The following computation determines the ask zeta function of the module of
+  upper triangular $3\times 3$ matrices, in accordance with
+  both [<a href="#ask">5</a>, Prop. 5.15] and
+  [<a href="#cico">7</a>, Prop. 5.9].
+</p>
+<hr>
+<pre>
+<code>sage: A = matrix([[1,1,1], [0,1,1], [0,0,1]])
+sage: Zeta.local_zeta_function(A, 'inc')
+(q - t)^3/(q^3*(t - 1)^4)</code>
+</pre>
+<hr>
+
+<p>
+  Alternatively, hypergraphs can be specified in terms of their hyperedge
+  multiplicities.
+  Let <code>D</code> be a Python dictionary whose keys are tuples
+  $a = (a_1,\dotsc,a_\ell)$ of integers with $0 \le a_j < n$ and
+  $a_1 < a_2 < \dotsb < a_\ell$ and whose values are non-negative
+  integers.
+  Then <code>D</code> defines a hypergraph $H$ with vertex set $\{0,\dotsc,n-1\}$
+  such that each value <code>k = D[a]</code> for a tuple as above
+  corresponds to $k$ hyperedges of $H$, each with support
+  $\{a_1,\dotsc,a_\ell\}$.
+  The rational function $W_H(q,t)$ can be computed
+  using <code>Zeta.local_zeta_function(n, 'inc', mu=D)</code>.
+</p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<p>
+  The following computation determines the ask zeta function of the module of all
+  $4 \times 6$ matrices of the form
+  $$
+  \begin{bmatrix}
+  * &amp; * &amp; * &amp; * &amp; * &amp; *\\
+  * &amp; * &amp; * &amp; * &amp; * &amp; *\\
+  0 &amp; 0 &amp; * &amp; * &amp; * &amp; *\\
+  0 &amp; 0 &amp; 0 &amp; * &amp; * &amp; * 
+  \end{bmatrix}.
+  $$
+</p>
+<hr>
+<pre>
+<code>sage: D = { (0,1): 2, (0,1,2): 1, (0,1,2,3): 3 }
+sage: Zeta.local_zeta_function(4, 'inc', mu=D)
+-(q^4 - t)*(q^3 - t)^2/((q^2 - t)^3*q^4*(t - 1))</code></pre>
+<hr>
+<p>This formula can also be obtained using [<a href="#ask">7</a>, Prop. 5.9].</p>
+
+<!--====================================================================-->
+<h3>Graphs (negative adjacency representations)</h3>
+<!--====================================================================-->
+
+<p>
+  Given a
+  <a href="http://doc.sagemath.org/html/en/reference/graphs/index.html">graph</a>
+  $G$, the rational function $W_G^-(q,t)$ from [<a href="#cico">7</a>] can be
+  computed using <code>Zeta.local_zeta_function(G, 'adj')</code>.
+</p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<p>The following determines the rational function $W^-_G(q,t)$, where $G$ is
+  the <a href="https://en.wikipedia.org/wiki/Butterfly_graph">butterfly
+  graph</a>.
+</p>
+<hr>
+<pre><code>sage: G = Graph(5)
+sage: G.add_edges([ (0,1), (0,4), (1,4), (2,3), (2,4), (3,4) ])
+sage: Zeta.local_zeta_function(G, 'adj')
+-(q^3*t + q^3 - 2*q^2*t - 2*q*t + t^2 + t)/((q*t - 1)^2*q^3*(t - 1))
+</code></pre>
+<hr>
+<p>By the Cograph Modelling Theorem [<a href="#cico">7</a>, Thm D], the
+  preceding rational function coincides with $W_H(q,t)$, where $H$ is a hypergraph
+  with incidence matrix
+  $$\begin{bmatrix}
+  1 &amp; 1 &amp; 1 &amp; 1 \\
+  1 &amp; 1 &amp; 0 &amp; 0 \\
+  1 &amp; 1 &amp; 0 &amp; 0 \\
+  1 &amp; 0 &amp; 1 &amp; 0 \\
+  1 &amp; 0 &amp; 1 &amp; 0\end{bmatrix}.$$
+  We can confirm this as follows.
+</p>
+<hr>
+<pre><code>sage: A = matrix([[1,1,1,1], [1,1,0,0], [1,1,0,0], [1,0,1,0], [1,0,1,0]])
+sage: Zeta.local_zeta_function(A, 'inc')
+-(q^3*t + q^3 - 2*q^2*t - 2*q*t + t^2 + t)/((q*t - 1)^2*q^3*(t - 1))
+</code></pre><hr>
+
+<!--====================================================================-->
+<h3>Graphs (positive adjacency representations)</h3>
+<!--====================================================================-->
+<p>
+  In order to compute the rational function $W_G^+(q,t)$ for a graph $G$,
+  simply provide the keyword argument <code>signs=1</code> when calling
+  <code>Zeta.local_zeta_function</code>.
+</p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<p>Let $G$ be the butterfly graph from above.</p>
+<hr>
+<pre><code>sage: Zeta.local_zeta_function(G, 'adj', signs=1)
+(q^6*t^6 + q^5*t^7 - q^6*t^5 - 3*q^5*t^6 - 6*q^4*t^7 + q^7*t^3 - 5*q^6*t^4 + 3*q^5*t^5 + 3*q^4*t^6 + 14*q^3*t^7 - 3*q^7*t^2 + 7*q^6*t^3 + 5*q^5*t^4 + 17*q^4*t^5 - 12*q^3*t^6 - 14*q^2*t^7 - q^7*t + 24*q^6*t^2 - 58*q^5*t^3 + 45*q^4*t^4 - 83*q^3*t^5 + 46*q^2*t^6 - 2*q*t^7 + t^8 - q^7 + 2*q^6*t - 46*q^5*t^2 + 83*q^4*t^3 - 45*q^3*t^4 + 58*q^2*t^5 - 24*q*t^6 + t^7 + 14*q^5*t + 12*q^4*t^2 - 17*q^3*t^3 - 5*q^2*t^4 - 7*q*t^5 + 3*t^6 - 14*q^4*t - 3*q^3*t^2 - 3*q^2*t^3 + 5*q*t^4 - t^5 + 6*q^3*t + 3*q^2*t^2 + q*t^3 - q^2*t - q*t^2)/((q*t - 1)*(q - t)^3*q^4*(t + 1)*(t - 1)^4)
 </code></pre>
 <hr>
 
@@ -736,7 +878,7 @@ roots, ...)</li>
 <p>and writes these to an optional file-like object (which defaults
 to <code>stdout</code>). The output of this function is also
 available for <a href=
-"http://www.math.uni-bielefeld.de/~rossmann/Zeta/topzetas.txt">download</a>.</p>
+"http://www.maths.nuigalway.ie/~rossmann/Zeta/topzetas.txt">download</a>.</p>
 <p>By the <b>essential value</b> of a rational function $Z\in
 \mathbf Q(s)$ at a point $w\in \mathbf C$, we mean the value of
 $Z/(s-w)^m$ at $s = w$, where $m$ is the order of $Z$ at $w$;
@@ -874,31 +1016,61 @@ remove causes of singularity in advance. While often slower than
 the <code>Zeta.Strategy.NORMAL</code>, this strategy is needed to reproduce some of the
 computations recorded in the database (<a href="#db">Section&nbsp;4</a>).</p>
 <!--====================================================================-->
-<h1 id="references">5. References</h1>
+<h1 id="references">6. References</h1>
 <!--====================================================================-->
 <p><a name="topzeta" id="topzeta">[1]</a> T. Rossmann.
 <a href="http://dx.doi.org/10.1112/plms/pdv012"><i>Computing topological zeta functions of groups, algebras, and
-modules, I</i></a>. Proc. Lond. Math. Soc. (3) 110 (2015), no. 5, 1099&ndash;1134.
-(<a href="http://plms.oxfordjournals.org/cgi/reprint/pdv012?ijkey=OMj4X8UAMyLgYmY&amp;keytype=ref">PDF</a>)</p>
+modules, I</i></a>. Proc. Lond. Math. Soc. (3) 110 (2015), no. 5,
+1099&ndash;1134.
+(<a href="http://www.maths.nuigalway.ie/~rossmann/files/topzeta.pdf">preprint</a>)
+</p>
 <p><a name="topzeta2" id="topzeta2">[2]</a> T. Rossmann.
 <a href="http://dx.doi.org/10.1016/j.jalgebra.2015.07.039"><i>Computing topological zeta functions of groups, algebras, and
 modules, II</i></a>.
 J.&nbsp;Algebra 444 (2015), 567&ndash;605.
-(<a href="http://www.math.uni-bielefeld.de/~rossmann/files/topzeta2.pdf">preprint</a>)</p>
+(<a href="http://www.maths.nuigalway.ie/~rossmann/files/topzeta2.pdf">preprint</a>)</p>
 <p><a name="unipotent" id="unipotent">[3]</a> T. Rossmann.
 <a href="http://dx.doi.org/10.1016/j.jalgebra.2015.09.050"><i>Topological representation zeta functions of unipotent groups</i></a>.
 J.&nbsp;Algebra 448 (2016), 210&ndash;237.
-(<a href="http://www.math.uni-bielefeld.de/~rossmann/files/unipotent.pdf">preprint</a>)</p>
+(<a href="http://www.maths.nuigalway.ie/~rossmann/files/unipotent.pdf">preprint</a>)</p>
 <p><a name="padzeta" id="padzeta">[4]</a> T. Rossmann.
-<i>Computing local zeta functions of groups, algebras, and modules</i>.
-(<a href="http://www.math.uni-bielefeld.de/~rossmann/files/padzeta.pdf">preprint</a>)</p>
+<a href="https://doi.org/10.1090/tran/7361"><i>Computing local zeta functions of groups, algebras, and modules</i></a>.
+    Trans. Amer. Math. Soc. 370 (2018), no. 7, 4841&ndash;4879.
+    (<a href="http://www.maths.nuigalway.ie/~rossmann/files/padzeta.pdf">preprint</a>)</p>
+
 <p><a name="ask" id="ask">[5]</a> T. Rossmann.
-<i>The average size of the kernel of a matrix and orbits of linear groups</i>.
-(<a href="http://www.math.uni-bielefeld.de/~rossmann/files/ask.pdf">preprint</a>)</p>
+  <a href="https://doi.org/10.1112/plms.12159"><i>The average size of the kernel of a matrix and orbits of linear groups</i></a>.
+  Proc. Lond. Math. Soc. (3) 117 (2018), no. 3, 574&ndash;616.
+  (<a href="files/ask.pdf">preprint</a>)</p>
+
+<p><a name="ask2" id="ask2">[6]</a> T. Rossmann.
+  <a href="https://doi.org/10.1016/j.jpaa.2019.106203"><i>The average size of
+    the kernel of a matrix and orbits of linear groups, II: duality</i></a>.
+  J. Pure Appl. Algebra. (2019).
+  (<a href="http://www.maths.nuigalway.ie/~rossmann/files/ask2.pdf">preprint</a>)</p>
+<p><a name="cico" id="cico">[7]</a> T. Rossmann and C. Voll.
+  <i>Groups, graphs, and hypergraphs: average sizes of kernels of generic
+  matrices with support constraints</i>.
+  (<a href="http://www.maths.nuigalway.ie/~rossmann/files/cico.pdf">preprint</a>)</p>
+
 <!--====================================================================-->
-<h1 id="license">6. License</h1>
+<h1 id="funding">7. Funding</h1>
 <!--====================================================================-->
-<p>Copyright &copy; 2014, 2015, 2016, 2017 Tobias Rossmann.</p>
+
+<p>The development of Zeta work was supported by
+    the <a href="https://www.humboldt-foundation.de">Alexander von
+    Humboldt Foundation</a> (2016&ndash;2018)
+  and by the <a href="http://www.dfg.de">DFG</a>
+  Priority Programme &ldquo;<a href="https://spp.computeralgebra.de">Algorithmic and
+  Experimental Methods in Algebra, Geometry and Number Theory</a>&rdquo;
+  (2013&ndash;2016).
+</p>
+
+
+<!--====================================================================-->
+<h1 id="license">8. License</h1>
+<!--====================================================================-->
+<p>Copyright &copy; 2014, 2015, 2016, 2017, 2019 Tobias Rossmann.</p>
 <p>Zeta is free software: you can redistribute it and/or modify it
 under the terms of the <a href=
 "http://www.gnu.org/copyleft/gpl.html">GNU General Public
@@ -913,17 +1085,17 @@ General Public License for more details.</p>
 License along with Zeta. If not, see <a href=
 "http://www.gnu.org/licenses">http://www.gnu.org/licenses</a>.</p>
 <!--====================================================================-->
-<h1 id="contact">7. Contact</h1>
+<h1 id="contact">9. Contact</h1>
 <!--====================================================================-->
 <blockquote>Tobias Rossmann<br>
-Department of Mathematics<br>
-University of Auckland<br>
-Private Bag 92019<br>
-Auckland<br>
-New Zealand<br>
+School of Mathematics, Statistics and Applied Mathematics<br>
+National University of Ireland, Galway<br>
+Galway<br>
+H91 TK33<br>
+Ireland<br>
 <br>
-tobias.rossmann (at) googlemail.com</blockquote>
+E-mail: tobias.rossmann (at) nuigalway.ie</blockquote>
 <hr>
-<small>last modified: April 9, 2017</small>
+<small>last modified: 26 August 2019</small>
 </body>
 </html>

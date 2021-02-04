@@ -349,7 +349,7 @@ def basis_of_matrix_algebra(gens, product=None):
             for c in U.basis():
                 v = vector(mult(Matrix(QQ, n, n, list(b)),
                                 Matrix(QQ, n, n, list(c))).list())
-                if v not in U:
+                if v not in W:
                     W = W + V.subspace([v])
         if W == U:
             break
@@ -371,3 +371,104 @@ def matlist_to_mat(mats, n=None):
 
 def mat_to_matlist(A):
     return [matrix(QQ, [[a(list(e)) for a in rows] for rows in A]) for e in identity_matrix(QQ, A.base_ring().ngens())]
+
+def subspace_structured_basis(U, V):
+    """Let U and V be subspaces of some common vector space W.
+    Construct a basis matrix of W which contains bases of U, V, and U cap V as
+    subsets with specified indices. The coordinates outside of U+V will be
+    last."""
+
+    if U.ambient_vector_space() != V.ambient_vector_space():
+        raise ValueError
+
+    ################################################
+    # Picture
+    ################################################
+    #   R^n
+    #    |
+    #    |   A[3]
+    #    |
+    #   U+V == S
+    #    |
+    #    |   A[2]
+    #    |
+    #    U
+    #    |
+    #    |   A[1]
+    #    |
+    # U cap V == I
+    #    |
+    #    |   A[0]
+    #    |
+    #    0
+
+    S = U + V
+    I = U.intersection(V)
+    C = I.complement()
+
+    A = [I, U.intersection(C), V.intersection(C), S.complement()]
+    indices_U = range(U.dimension())
+    indices_V = (range(I.dimension()) +
+                 range(U.dimension(), U.dimension()+A[2].dimension()))
+    indices_U_cap_V = range(I.dimension())
+    rem = U.dimension() + A[2].dimension()
+    indices_remaining = range(rem, rem+A[3].dimension())
+    
+    return (Matrix(U.base_ring(), [x for a in A for x in a.basis()]),
+        [indices_U, indices_V, indices_U_cap_V, indices_remaining])
+
+def graph_to_generic_matrix(G, t):
+    if t not in ['symmetric', 'antisymmetric']:
+        raise ValueError('unsupported type of matrix')
+    if G.has_multiple_edges():
+        raise ValueError('parallel edges not supported')
+
+    A = G.adjacency_matrix()
+    d = A.nrows()
+    n = sum(A[i,j] for i in range(d) for j in range(i,d))
+    R = PolynomialRing(QQ, n, 'x')
+    B = matrix(R, d, d)
+
+    it = iter(R.gens())
+    
+    for i in range(d):
+        for j in range(i,d):
+            B[i,j] = next(it) if A[i,j] else 0
+            if i < j:
+                B[j,i] = -B[i,j] if t == 'antisymmetric' else +B[i,j]
+    return B
+
+def is_matrix(A):
+    try:
+        _ = A.matrix_space
+        return True
+    except AttributeError:
+        return False
+
+def is_polynomial(f):
+    try:
+        _ = f.content_ideal
+        return True
+    except AttributeError:
+        return False
+    
+def is_list(L):
+    try:
+        _ = L.append
+        return True
+    except AttributeError:
+        return False
+    
+def is_graph(G):
+    try:
+        _ = G.num_verts
+        return True
+    except AttributeError:
+        return False
+
+def is_string(s):
+    try:
+        _ = s.capitalize
+        return True
+    except AttributeError:
+        return False

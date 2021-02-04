@@ -1,7 +1,7 @@
 #
 # Zeta.
 #
-# Copyright 2014, 2015, 2016, 2017 Tobias Rossmann.
+# Copyright 2014, 2015, 2016, 2017, 2019 Tobias Rossmann.
 #
 # This package is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -17,8 +17,8 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.3.2'
-__date__ = 'April 2017'
+__version__ = '0.4'
+__date__ = 'August 2019'
 
 print 'Loading...'
 
@@ -31,11 +31,12 @@ from subobjects import SubobjectZetaProcessor
 from reps import RepresentationProcessor
 
 from ask import AskProcessor
+from cico import CicoProcessor, IncidenceProcessor
 
-from algebra import Algebra
+from algebra import Algebra, Subalgebra
 from abstract import ReductionError
 from toric import ToricDatum
-from util import create_logger
+from util import create_logger, E
 from common import symbolic_count_varieties
 
 import surf, smurf
@@ -51,7 +52,7 @@ from laurent import LaurentPolynomial
 
 from subobjects import Strategy
 
-from sage.all import Infinity, var
+from sage.all import Infinity, var, Matrix, Graph
 import sage
 
 from functools import partial
@@ -107,7 +108,9 @@ def lookup(entry=None, what=None, type='topological'):
 
 def zeta_function(type, L, objects=None, optimise_basis=False,
                   ncpus=None, alt_ncpus=None, strategy=None, profile=None, verbose=False,
-                  optlevel=None, addmany_dispatcher=None, mode=None, debug=None):
+                  optlevel=None, addmany_dispatcher=None, mode=None,
+                  debug=None, **kwargs):
+
     if type not in ['p-adic', 'topological']:
         raise ValueError('Unknown type of zeta function')
 
@@ -159,10 +162,10 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
     if verbose:
         from logging import INFO, DEBUG
         loglevels = [(logger, INFO), (smurf.logger, INFO), (surf.logger, INFO),
-                     (torus.logger, INFO), (abstract.logger, INFO),
+                     (torus.logger, INFO), (abstract.logger, DEBUG),
                      (cycrat.logger, INFO), (triangulate.logger, INFO),
                      (reps.logger, INFO), (subobjects.logger, INFO),
-                     (ask.logger, INFO),
+                     (ask.logger, INFO), (cico.logger, DEBUG),
                      (addmany.logger, INFO), ]
         oldlevels = []
 
@@ -171,36 +174,60 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
             oldlevels.append(old)
             m.setLevel(min(old,level))
 
-    # Try to detect polynomials and lists of polynomials.
-    polynomials = None
-    try:
-        _ = L.exponents()
-    except:
-        try:
-            if not isinstance(L, basestring) and not isinstance(L,sage.matrix.matrix_dense.Matrix_dense) and objects != 'orbits':
-                polynomials = list(L)
-        except:
-            pass
-    else:
-        polynomials = [L]
-
-    if (polynomials is None) and not isinstance(L, algebra.Algebra) and not isinstance(L,sage.matrix.matrix_dense.Matrix_dense) and objects != 'orbits':
+    if util.is_graph(L):
+        if L.has_multiple_edges():
+            raise ValueError('parallel edges not supported')
+        
+    if (util.is_matrix(L) or util.is_graph(L)) and objects not in ['ask', 'cico', 'adj', 'inc']:
+        raise ValueError('invalid objects specified for given input')
+    
+    elif util.is_polynomial(L):
+        # Turn a polynomial into a list of polynomials.
+        L = [L]
+    elif util.is_string(L):
         L = lookup(L)
-
-    if polynomials is not None:
-        proc = IgusaProcessor(*polynomials)
+        
+    if objects in ['poly', 'igusa']:
+        proc = IgusaProcessor(*L)
     elif objects in ['subalgebras', 'ideals']:
         proc = SubobjectZetaProcessor(L, objects, strategy=strategy)
     elif objects == 'reps':
         proc = RepresentationProcessor(L)
     elif objects == 'ask':
-        proc = AskProcessor(L, mode=mode)
+        if util.is_graph(L):
+            signs = kwargs.get('signs', -1)
+            if signs not in [+1, -1]:
+                raise ValueError('invalid signs')
+            proc = AskProcessor(
+                util.graph_to_generic_matrix(L, 'antisymmetric' if signs == -1 else 'symmetric')
+                )
+        else:
+            proc = AskProcessor(L, mode=mode)
+    elif objects == 'cico':
+        proc = CicoProcessor(L, **kwargs)
+    elif objects == 'adj':
+        if not util.is_graph(L) and util.is_matrix(L):
+            try:
+                L = Graph(L)
+            except:
+                raise ValueError('input is not a graph or an adjacency matrix of a graph')
+        proc = CicoProcessor(L, **kwargs)
+    elif objects == 'inc':
+        try:
+            n = int(L)
+            mu = kwargs.get('mu', {})
+            A = cico.incidence_matrix_from_multiplicities(n, mu)
+        except:
+            A = Matrix(L)
+        
+        proc = IncidenceProcessor(A)
     elif objects == 'orbits':
         # NOTE: we don't currently check if L really spans a matrix Lie algebra
         proc = AskProcessor(util.matlist_to_mat(util.basis_of_matrix_algebra(L, product='Lie')), mode=mode)
     elif objects == 'cc':
         if not L.is_Lie() and not L.is_nilpotent():
-            raise ValueError('need a nilpotent Lie algebra in order to enumerate conjugacy classes')
+            logger.warn('not a nilpotent Lie algebra')
+            # raise ValueError('need a nilpotent Lie algebra in order to enumerate conjugacy classes')
         proc = AskProcessor(util.matlist_to_mat(L._adjoint_representation()), mode=mode)
     else:
         raise ValueError('unknown objects [%s]' % objects)

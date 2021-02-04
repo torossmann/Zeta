@@ -19,7 +19,8 @@ int crunch(int argc, char *argv[])
      gzFile gzfile;
 
      char line[LINEBUFSIZE];
-     int nvalues, i, j, k, chunk_size, max_chunk_size, nrays, *int_chunk;
+     unsigned int nvalues, i, j, k, chunk_size, max_chunk_size, nrays;
+     int*int_chunk;
      mpq_t *values, *results, *mpq_chunk, x, y;
 
      if (argc < 4) {

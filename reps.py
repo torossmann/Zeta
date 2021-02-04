@@ -256,6 +256,7 @@ def evaluate_monomial_integral(mode, RS, polytopes, substitution, dims=None):
     # NOTE:
     # The name is slightly misleading since the factor (1-1/q)**RS.ambient_dim
     # is missing in the p-adic case.
+    # In other words, we're really computing (1-1/q)**(-RS.ambient_dim) * integral.
 
     for P in polytopes:
         if P.ambient_dim() != RS.ambient_dim:
@@ -403,13 +404,12 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
             self.algebra = None
         except TypeError:
             self.algebra = arg
+        if self.algebra is not None:
+            self.R, self.S = self.algebra._SV_commutator_matrices()
+        self.ring = self.R.base_ring()
 
     @cached_simple_method
     def root(self):
-        if self.algebra is not None:
-            self.R, self.S = self.algebra._commutator_matrices()
-        self.ring = self.R.base_ring()
-
         d = self.ring.ngens()
         self.d = d
 
@@ -429,7 +429,14 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
             polyhedra.append(Polyhedron(eqns=eqns, ieqs=ieqs))
         self.RS = RationalSet(polyhedra, ambient_dim=d)
 
-        F = FractionField(self.ring)
+        # NOTE:
+        # A bug in Sage prevents rank computations over (fields of fractions of)
+        # polynomial rings in zero variables over fields.
+        if d > 0:
+            F = FractionField(self.ring)
+        else:
+            F = FractionField(self.ring.base_ring())
+
         two_u = matrix(F, self.R).rank() # self.R.rank()
         if two_u % 2:
             raise RuntimeError('this is odd')

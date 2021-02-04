@@ -237,7 +237,9 @@ class LocalZetaProcessor(GeneralZetaProcessor):
                         raise RuntimeError('A parallel process died.')
                 logger.info('All evaluators finished.')
 
-                eval_filenames = addmany.optimise(eval_filenames)
+                if common.addmany_optimise:
+                    eval_filenames = addmany.optimise(eval_filenames)
+                    
                 logger.info('Total number of rational functions: %d' % sum(len(DiskList(f)) for f in eval_filenames))
 
                 if common.addmany_dispatcher != 'symbolic':
