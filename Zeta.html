@@ -1,0 +1,476 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Zeta &mdash; computing zeta functions of groups, algebras,
+and modules</title>
+<meta http-equiv="content-type" content=
+"text/html; charset=us-ascii">
+<meta name="author" content="Tobias Rossmann">
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+<script type="text/javascript" src=
+"https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+</head>
+<body>
+<pre>
+ZZZZZZZZZZZZZZZZZZZ                           tttt                           
+Z:::::::::::::::::Z                        ttt:::t                           
+Z:::::::::::::::::Z                        t:::::t                           
+Z:::ZZZZZZZZ:::::Z                         t:::::t                           
+ZZZZZ     Z:::::Z     eeeeeeeeeeee   ttttttt:::::ttttttt     aaaaaaaaaaaaa   
+        Z:::::Z     ee::::::::::::ee t:::::::::::::::::t     a::::::::::::a  
+       Z:::::Z     e::::::eeeee:::::et:::::::::::::::::t     aaaaaaaaa:::::a 
+      Z:::::Z     e::::::e     e:::::tttttt:::::::tttttt              a::::a 
+     Z:::::Z      e:::::::eeeee::::::e     t:::::t             aaaaaaa:::::a 
+    Z:::::Z       e:::::::::::::::::e      t:::::t           aa::::::::::::a 
+   Z:::::Z        e::::::eeeeeeeeeee       t:::::t          a::::aaaa::::::a 
+ZZZ:::::Z     ZZZZe:::::::e                t:::::t    ttttta::::a    a:::::a 
+Z::::::ZZZZZZZZ:::e::::::::e               t::::::tttt:::::a::::a    a:::::a 
+Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a 
+Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
+ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
+
+                                                                  Version 0.1
+                             by
+                                 Tobias Rossmann
+  
+</pre>
+<hr>
+<h1>Contents</h1>
+<ol>
+<li><a href="#description">Description</a></li>
+<li><a href="#download">Download and setup</a></li>
+<li><a href="#usage">Basic usage</a>
+<ol>
+<li><a href="#algebras">Creating algebras</a></li>
+<li><a href="#top">Computing topological zeta functions</a></li>
+<li><a href="#db">The built-in database of examples</a></li>
+<li><a href="#modules">Modules and algebras with operators</a></li>
+</ol>
+</li>
+<li><a href="#advanced">Advanced usage</a></li>
+<li><a href="#references">References</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#contact">Contact</a></li>
+</ol>
+<!--====================================================================-->
+<h1 id="description">1. Description</h1>
+<!--====================================================================-->
+<p>Zeta provides methods for computing topological zeta functions
+arising from the enumeration of subalgebras, ideals, or submodules
+of suitable algebraic structures. The theoretical background of the
+method used is described in [<a href="#topzeta">R14a</a>,<a href=
+"#topzeta2">R14b</a>]. Zeta is distributed as a <a href=
+"http://www.python.org">Python</a>-package for the computer algebra
+system <a href="http://sagemath.org/">Sage</a>.</p>
+<p>This work is supported by the <a href=
+"http://www.dfg.de/">DFG</a> Priority Programme &ldquo;Algorithmic
+and Experimental Methods in Algebra, Geometry and Number
+Theory&rdquo; (<a href="http://www.computeralgebra.de/">SPP
+1489</a>).</p>
+<!--====================================================================-->
+<h1 id="download">2. Download and setup</h1>
+<!--====================================================================-->
+<!--====================================================================-->
+<h3>Requirements</h3>
+<!--====================================================================-->
+<p>This software requires a recent version of <a href=
+"http://sagemath.org/">Sage</a>. It is untested on anything but
+64-bit Linux (x86) systems.</p>
+<!--====================================================================-->
+<h3>Installation</h3>
+<!--====================================================================-->
+<p>In order to install Zeta, download <a href=
+"http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.1.tar.bz2">
+Zeta-0.1.tar.bz2</a> and extract it into some directory,
+<code>$DIR</code> say. This will create a subdirectory
+<code>$DIR/Zeta</code>. If Sage is started from within
+<code>$DIR</code> or if <code>$DIR</code> is among the directories
+listed in <code>$SAGE_PATH</code>, then Zeta can be imported
+via</p>
+<pre>
+<code>
+        import Zeta
+</code></pre>
+<p>If <code>$DIR</code> is not listed in <code>$SAGE_PATH</code>,
+you can permanently include it by adding a line</p>
+<pre>
+<code>
+        export SAGE_PATH="$DIR:$SAGE_PATH"
+</code></pre>
+<p>to <code>$HOME/.bashrc</code> (if you use bash), where
+<code>$DIR</code> is replaced by the actual directory name from
+above; having applied this change, you will want to start a new
+shell. Alternatively, for a temporary solution, after executing</p>
+<pre>
+<code>
+        sys.path.append('$DIR')
+</code></pre>
+<p>from within Sage, you should be able to import Zeta.</p>
+<!--====================================================================-->
+<h3>Warning messages</h3>
+<!--====================================================================-->
+<p>If you receive a warning about <a href=
+"http://www.home.uni-osnabrueck.de/wbruns/normaliz/">Normaliz</a>
+being absent, it is strongly recommended that you install it. In
+order to be found by Zeta, the executable file
+<code>normaliz</code> should be either somewhere in your
+<code>$PATH</code> or within <code>$DIR/Zeta</code>, where
+<code>$DIR</code> is as above.</p>
+<p>If you receive a warning about Zeta being unable to load a C
+extension, it is strongly recommended that you run</p>
+<pre>
+<code>
+        make clean ; make install
+</code></pre>
+<p>from within <code>$DIR/Zeta</code>.</p>
+<p>Zeta will be fully functional but much slower if Normaliz or the
+C extension is missing.</p>
+<!--====================================================================-->
+<h1 id="usage">3. Basic usage</h1>
+<!--====================================================================-->
+<!--====================================================================-->
+<h2 id="algebras">3.1. Creating algebras</h2>
+<!--====================================================================-->
+<p>By an <b>algebra</b>, we mean a free $\mathbf Z$-module of
+finite rank endowed with a biadditive multiplication; we do not
+require this multiplication to be associative or Lie. Given a
+$\mathbf Z$-basis $x_1,\dotsc,x_d$ of an algebra $L$, define
+$\alpha_{ije}\in \mathbf Z$ by</p>
+\[ x_i x_j = \sum_{e=1}^d \alpha_{ije} x_e. \]
+<p>The numbers $\alpha_{ije}$ are the <b>structure constants</b> of
+$L$ with respect to the chosen basis $(x_1,\dotsc,x_d)$. The
+principal method for specifying an algebra in Zeta is to provide
+structure constants as a nested list</p>
+\[ \begin{matrix} [[ (\alpha_{111},\dotsc,\alpha_{11d}), &amp;
+\dotsc &amp; (\alpha_{1d1},\dotsc,\alpha_{1dd}) ]\phantom], \\
+\vdots &amp; &amp; \vdots \\ \phantom[[
+(\alpha_{d11},\dotsc,\alpha_{d1d}), &amp; \dotsc &amp;
+(\alpha_{dd1},\dotsc,\alpha_{ddd}) ]] \\ \end{matrix} \]
+<p>as the first argument of <code>Zeta.Algebra</code>. (We note
+that the table of structure constants of an instance of
+<code>Zeta.Algebra</code> is stored in the <code>table</code>
+attribute.)</p>
+<!--====================================================================-->
+<h2 id="top">3.2. Computing topological zeta functions</h2>
+<!--====================================================================-->
+<p>Given an algebra obtained via <code>Zeta.Algebra</code>, the
+function <code>Zeta.topological_zeta_function</code> can be used to
+attempt to compute an associated topological zeta function.
+Specifically, <code>Zeta.topological_zeta_function(L,
+'subalgebras')</code> (or, equivalently,
+<code>Zeta.topological_zeta_function(L)</code>) will attempt to
+compute the topological subalgebra zeta function of $L$ as a
+rational function in $s$, while
+<code>Zeta.topological_zeta_function(L, 'ideals')</code> will do
+the same for ideals.</p>
+<p>In general, such computations are not guaranteed to succeed. If
+the method for computing topological zeta functions from [<a href=
+"#topzeta">R14a</a>,<a href="#topzeta2">R14b</a>] fails,
+<code>Zeta.topological_zeta_function</code> will raise an exception
+of type <code>Zeta.ReductionError</code>. Disregarding bugs in Zeta
+or Sage, whenever <code>Zeta.topological_zeta_function</code> does
+finish succesfully, its output is supposed to be correct.</p>
+<!--====================================================================-->
+<h3>Example</h3>
+<!--====================================================================-->
+<p>To illustrate the computation of topological zeta functions,
+consider the commutative algebra $L = \mathbf Z[X]/X^3$. As a
+$\mathbf Z$-basis of $L$, we choose $(1,x,x^2)$, where $x$ is the
+image of $X$ in $L$. The associated nested list of structure
+constants is</p>
+\[ \begin{matrix} [[(1, 0, 0), &amp; (0, 1, 0), &amp; (0, 0,
+1)]\phantom],\\ \phantom[ [(0, 1, 0), &amp; (0, 0, 1), &amp; (0, 0,
+0)]\phantom],\\ \phantom[[(0, 0, 1), &amp; (0, 0, 0), &amp; (0, 0,
+0)]]. \end{matrix} \]
+<p>The following documents a complete Sage session leading to the
+computation of the topological subalgebra and ideal zeta functions
+of $L$.</p>
+<hr>
+<pre>
+<code>sage: import Zeta
+sage: L = Zeta.Algebra([[(1, 0, 0), (0, 1, 0), (0, 0, 1)], [(0, 1, 0), (0, 0,1), (0, 0, 0)], [(0, 0, 1), (0, 0, 0), (0, 0, 0)]])
+sage: Zeta.topological_zeta_function(L, 'subalgebras')
+2*(15*s - 8)/((5*s - 4)*(3*s - 2)^2*s)
+sage: Zeta.topological_zeta_function(L, 'ideals')
+1/((3*s - 2)*(2*s - 1)*s)
+</code></pre>
+<hr>
+<!--====================================================================-->
+<h2 id="db">3.3. The built-in database of examples</h2>
+<!--====================================================================-->
+<!--====================================================================-->
+<h3>Accessing the database</h3>
+<!--====================================================================-->
+<p>Zeta includes a &ldquo;database&rdquo; of algebras. When
+topological zeta functions associated with an algebra in the database
+have been succesfully computed using Zeta, these are stored as well.</p>
+<p>Each algebra stored in Zeta can be referred to using its unique
+identification number or one of finitely many names. Access to
+these algebras is provided using the function
+<code>Zeta.lookup</code>.</p>
+<p>If <code>Zeta.lookup</code> is called with precisely one
+argument <code>entry</code>, then <code>entry</code> should be
+either an identification number or a name of an algebra, $L$ say,
+in the database. In this case, <code>Zeta.lookup</code> will return
+$L$. An optional second argument to <code>Zeta.lookup</code> can be
+used to access other information about $L$:</p>
+<ul>
+<li>If the second argument is <code>'subalgebras'</code> or
+<code>'ideals'</code>, then <code>Zeta.lookup</code> will return
+the topological subalgebra or ideal zeta function of $L$ if it is
+known, and <code>None</code> otherwise.</li>
+<li>If the second argument is <code>'id'</code>, then
+<code>Zeta.lookup</code> returns the identification number of
+$L$.</li>
+<li>If the second argument is <code>'names'</code>, then
+<code>Zeta.lookup</code> returns a list of the known names of
+$L$.</li>
+</ul>
+<p>When called without arguments, <code>Zeta.lookup</code> returns
+a list of pairs <code>(i,names)</code>, where <code>i</code> ranges
+over the identification numbers of all algebras in the database and
+<code>names</code> is a possibly empty list of names associated
+with the <code>i</code>th algebra.</p>
+<!--====================================================================-->
+<h3>Example</h3>
+<!--====================================================================-->
+<p>The algebra $L = \mathbf Z[X]/X^3$ from <a href=
+"#tut">Section&nbsp;3.1</a> is known to Zeta under the name
+<code>'ZZ[X]/X^3'</code>; it can be retrieved via <code>L = Zeta.lookup('ZZ[X]/X^3')</code>.
+We may recover the pre-computed topological zeta functions of $L$ as follows:</p>
+<hr>
+<pre>
+<code>sage: Zeta.lookup('ZZ[X]/X^3', 'subalgebras')
+2*(15*s - 8)/((5*s - 4)*(3*s - 2)^2*s)
+sage: Zeta.lookup('ZZ[X]/X^3', 'ideals')
+1/((3*s - 2)*(2*s - 1)*s)
+</code></pre>
+<hr>
+<!--====================================================================-->
+<h3>Algebras and their names</h3>
+<!--====================================================================-->
+<p>Apart from self-explanatory names such as
+<code>'sl(2,ZZ)'</code> and <code>'gl(2,ZZ)'</code>, Zeta also
+includes algebras $L_{d,i}$, $L_{d,i}(\varepsilon)$, $L^i$,
+$L^i_a$, $M^i$, and $M^i_a$ taken from de&nbsp;Graaf's tables of
+<a href=
+"http://dx.doi.org/10.1016/j.jalgebra.2006.08.006">nilpotent</a>
+and <a href=
+"http://projecteuclid.org/euclid.em/1120145567">soluble</a> Lie
+algebras; their corresponding names in Zeta are of the form
+<code>L(d,i)</code>, <code>L(d,i;eps)</code>, <code>L^i</code>,
+<code>L^i(a)</code>, <code>M^i</code>, and <code>M^i(a)</code>. For
+the infinite families among these algebras, we only included
+selected specialisations of the parameters. Recall [<a href=
+"#topzeta">R14a</a>, Prop.&nbsp;5.19(ii)] that the topological zeta
+function of an algebra $L$ (over $\mathbf Z$) only depends on the
+$\mathbf C$-isomorphism type of $L\otimes_{\mathbf Z}\mathbf
+C$.</p>
+<p>The algebras <code>C(d,i)</code> and <code>C(d,i;eps)</code> in
+Zeta are &ldquo;commutative versions&rdquo; of the nilpotent Lie
+rings <code>L(d,i)</code> and <code>L(d,i;eps)</code> respectively:
+they were obtained by inverting the signs of all entries underneath
+the diagonal in the matrices of structure constants.</p>
+<!--====================================================================-->
+<h3>Listing algebras, topological zeta functions, and their
+properties</h3>
+<!--====================================================================-->
+<p>The function <code>Zeta.examples.printall</code> generates a
+text-based list of</p>
+<ul>
+<li>all algebras known to Zeta,</li>
+<li>structural information about each algebra,</li>
+<li>known associated topological zeta functions,</li>
+<li>numerical invariants of these zeta functions (degree, complex
+roots, ...)</li>
+</ul>
+<p>and writes these to an optional file-like object (which defaults
+to <code>stdout</code>). The output of this function is also
+available for <a href=
+"http://www.math.uni-bielefeld.de/~rossmann/Zeta/topzetas.txt">download</a>.</p>
+<p>By the <b>essential value</b> of a rational function $Z\in
+\mathbf Q(s)$ at a point $w\in \mathbf C$, we mean the value of
+$Z/(s-w)^m$ at $s = w$, where $m$ is the order of $Z$ at $w$;
+similarly, for $w = \infty$. The output of
+<code>Zeta.examples.printall</code> (and hence the content of the
+file linked to above) contains the essential values of topological
+zeta functions at $0$ and $\infty$; these are related to
+Conjectures&nbsp;IV&ndash;V from [<a href=
+"#topzeta">R14a</a>,<a href="#topzeta2">R14b</a>].</p>
+<!--====================================================================-->
+<h2 id="modules">3.4. Modules and algebras with operators</h2>
+<!--====================================================================-->
+<p>In [<a href="#topzeta">R14a</a>,<a href="#topzeta2">R14b</a>],
+(topological) ideal zeta functions were treated as special cases of
+submodule zeta functions. In Zeta, we regard modules as special
+cases of algebras with operators. Namely, each algebra $L$ in Zeta
+is endowed with a possibly empty set $\Omega$ of operators,
+i.e.&nbsp;$\Omega$ consists of additive endomorphisms of $L$. The
+topological subalgebra and ideal zeta functions of $L$ are always
+understood to be those arising from the enumeration of
+$\Omega$-invariant subalgebras or ideals, respectively. Thus, if
+the multiplication of $L$ is trivial, then the $\Omega$-invariant
+subalgebras (and ideals) of $L$ are precisely the submodules of $L$
+under the action of the enveloping associative ring of $\Omega$
+within $\mathrm{End}(L)$.</p>
+<p>In practice, $\Omega$ is given by a finite list of matrices (or
+nested lists of integers representing those matrices) corresponding
+to the defining basis of $L$. This list is then supplied to
+<code>Zeta.Algebra</code> using the keyword parameter
+<code>operators</code>. For algebras with zero multiplication,
+instead of entering structure constants, you can provide a keyword
+argument <code>rank</code> to <code>Zeta.Algebra</code> which
+intialises all structure constants to zero.</p>
+<!--====================================================================-->
+<h3>Example</h3>
+<!--====================================================================-->
+<p>We illustrate the computation of the topological submodule zeta
+function arising from the enumeration of sublattices within
+$\mathbf Z^3$ invariant under the matrix \[ \begin{bmatrix} 1 &amp;
+1 &amp; -1 \\ 0 &amp; 1 &amp; 1 \\ 0 &amp; 0 &amp; 1 \end{bmatrix}
+\]</p>
+<hr>
+<pre>
+<code>sage: M = Zeta.Algebra(rank=3, operators=[ [[1,1,-1],[0,1,1],[0,0,1]] ])
+sage: Zeta.topological_zeta_function(M)
+1/((3*s - 2)*(2*s - 1)*s)
+</code></pre>
+<hr>
+<p>In the database included with Zeta, for examples of algebras
+with trivial multiplication but non-empty lists of operators, we
+did not include ideal zeta functions; they coincide with the corresponding
+subalgebra and submodule zeta functions.</p>
+<!--====================================================================-->
+<h1 id="advanced">4. Advanced usage</h1>
+<!--====================================================================-->
+<!--====================================================================-->
+<h3>More on the creation of algebras</h3>
+<!--====================================================================-->
+<p>As an integral version of terminology used by <a href=
+"http://dx.doi.org/10.1515/CRELLE.2009.065">Evseev</a>, we say that
+a $\mathbf Z$-basis $(x_1,\dotsc,x_d)$ of an algebra $L$ is
+<b>simple</b> if each product $x_ix_j$ is of the form
+$\varepsilon_{ij} x_{a_{ij}}$ for $\varepsilon_{ij} = \in
+\{-1,0,1\}$. In this case, the structure constants of $L$ with
+respect to $(x_1,\dotsc,x_d)$ are determined by the matrix $A =
+[\varepsilon_{ij} a_{ij}]_{i,j=1,\dotsc,d}$. Zeta supports the
+creation of algebras from such a matrix $A$ by passing
+<code>simple_basis=True</code> and <code>matrix=</code>$A$ as
+arguments to <code>Zeta.Algebra</code>.</p>
+<p>For example, the Heisenberg Lie ring with $\mathbf Z$-basis
+$(x_1,x_2,x_3)$ and non-trivial products $[x_1,x_2] = x_3$ and
+$[x_2,x_1] = -x_3$ can be defined in Zeta via
+<code>Zeta.Algebra(simple_basis=True, matrix=[[0,3,0], [-3,0,0],
+[0,0,0] ])</code> .</p>
+<!--====================================================================-->
+<h3>Changing bases</h3>
+<!--====================================================================-->
+<p>Computations using Zeta are usually very sensitive to the choice
+of the basis used to define the structure constants of the algebra
+under consideration. If a particular zeta function cannot be
+directly computed using Zeta, it might be useful to consider
+different bases. Given an algebra <code>L</code> of rank $d$ and an
+invertible $d\times d$ matrix <code>A</code> over $\mathbf Z$, the
+algebra obtained from $L$ by taking the rows of <code>A</code> as a
+basis (relative to the original one) can be constructed via
+<code>L.change_basis(A)</code>.</p>
+<p>If <code>Zeta.topological_zeta_function</code> is called with
+the keyword argument <code>optimise_basis=True</code>, then Zeta
+will attempt to find a basis of the algebra, $L$ say, in question
+such that the associated toric datum is &ldquo;small&rdquo;.
+Currently, Zeta simply loops over permutations of the defining
+basis of $L$.</p>
+<!--====================================================================-->
+<h3>Verbosity</h3>
+<!--====================================================================-->
+<p>If <code>Zeta.topological_zeta_function</code> is called with
+the keyword argument <code>verbose=True</code>, then detailed
+information on the various stages of computations will be
+displayed. Apart from illustrating the key steps explained in
+[<a href="#topzeta">R14a</a>,<a href="#topzeta2">R14b</a>], this
+can often be helpful when it comes to estimating the feasibility of
+the intended computation.</p>
+<!--====================================================================-->
+<h3>Computational resources</h3>
+<!--====================================================================-->
+<p>An upper bound on the number of CPUs used by
+<code>Zeta.topological_zeta_function</code> can be enforced by
+providing a numerical value for the keyword parameter
+<code>ncpus</code>.</p>
+<p>During computations of topological zeta functions, Zeta uses
+various temporary files. Be warned that for some computations
+carried out by the author, the combined size of these files
+exceeded 50&nbsp;GB.</p>
+<p>Zeta can also be quite demanding when it comes to system memory.
+If computations run out of memory, you can try reducing the number
+of CPUs used as indicated above or try setting the keyword
+parameter <code>profile</code> of
+<code>Zeta.topological_zeta_function</code> to
+<code>Zeta.Profile.SAVE_MEMORY</code>. Setting
+<code>profile=Zeta.Profile.SPEED</code> will result in slightly
+better performance at the cost of increased memory use.</p>
+<!--====================================================================-->
+<h3>Reduction strategies</h3>
+<!--====================================================================-->
+<p>The reduction step explained in [<a href="#topzeta2">R14b</a>]
+depends on a strategy for chosing &ldquo;reduction
+candidates&rdquo;. The default choice of a strategy is the one
+explained in the paper. Alternative choices can be made using the
+keyword parameter <code>strategy</code> of
+<code>Zeta.topological_zeta_function</code>. In particular, setting
+<code>strategy=Zeta.Strategy.NONE</code> disables reduction
+completely, thus turning
+<code>Zeta.topological_zeta_function</code> into an implementation
+of [<a href="#topzeta">R14a</a>] only. Passing
+<code>strategy=Zeta.Strategy.PREEMPTIVE</code> will result in a
+more aggressive reduction strategy which tries to anticipate and
+remove causes of singularity in advance. While often slower than
+the default, this strategy is needed to reproduce some of the
+computations recorded in the database (<a href=
+"#db">Section&nbsp;3.2</a>).</p>
+<!--====================================================================-->
+<h1 id="references">5. References</h1>
+<!--====================================================================-->
+<p><a name="topzeta" id="topzeta">[R14a]</a> T. Rossmann.
+<i>Computing topological zeta functions of groups, algebras, and
+modules, I</i>. (<a href=
+"http://www.math.uni-bielefeld.de/~rossmann/files/topzeta.pdf">Preprint</a>)</p>
+<p><a name="topzeta2" id="topzeta2">[R14b]</a> T. Rossmann.
+<i>Computing topological zeta functions of groups, algebras, and
+modules, II</i>. (<a href=
+"http://www.math.uni-bielefeld.de/~rossmann/files/topzeta2.pdf">Preprint</a>)</p>
+<!--====================================================================-->
+<h1 id="license">6. License</h1>
+<!--====================================================================-->
+<p>Copyright &copy; 2014 Tobias Rossmann.</p>
+<p>Zeta is free software: you can redistribute it and/or modify it
+under the terms of the <a href=
+"http://www.gnu.org/copyleft/gpl.html">GNU General Public
+License</a> as published by the Free Software Foundation, either
+version 3 of the License, or (at your option) any later
+version.</p>
+<p>Zeta is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose. See the GNU
+General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public
+License along with Zeta. If not, see <a href=
+"http://www.gnu.org/licenses">http://www.gnu.org/licenses</a>.</p>
+<!--====================================================================-->
+<h1 id="contact">7. Contact</h1>
+<!--====================================================================-->
+<blockquote>Tobias Rossmann<br>
+Fakult&auml;t f&uuml;r Mathematik<br>
+Universit&auml;t Bielefeld<br>
+Postfach 100131<br>
+D-33501 Bielefeld<br>
+Germany<br>
+<br>
+tobias.rossmann (at) googlemail.com</blockquote>
+<hr>
+<small>last modified: Sep 17, 2014</small>
+</body>
+</html>
