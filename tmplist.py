@@ -10,7 +10,7 @@ import contextlib, os, struct
 from util import TemporaryDirectory
 
 _INTSIZE = 8
-_INTSYMB = 'q'
+_INTSYMB = '=q'
 
 class DiskList:
     # Write operations are not thread safe, but reading is.
@@ -28,6 +28,10 @@ class DiskList:
 
     def __len__(self):
         return os.path.getsize(self._index) / _INTSIZE
+
+    def unlink(self):
+        for f in [self._data, self._index, self._sizes]:
+            os.remove(f)
 
     def append(self, x):
         s = dumps(x)
@@ -96,10 +100,9 @@ class DiskList:
             yield self[i]
 
 @contextlib.contextmanager
-def TemporaryList():
-    if common.disklist:
+def TemporaryList(use_disk=False):
+    if common.save_memory or use_disk:
         with TemporaryDirectory() as tmpdir:
             yield DiskList(os.path.join(tmpdir,'list'))
     else:
         yield []
-

@@ -1,19 +1,22 @@
 from sage.all import *
 
 import abstract
-from abstract import ZetaDatum, TopologicalZetaProcessor, ReductionError
+from abstract import ZetaDatum, TopologicalZetaProcessor, LocalZetaProcessor, ReductionError
 
 from toric import ToricDatum
 
-from torus import SubvarietyOfTorus
-from convex import conify_polyhedron, DirectProductOfPolyhedra, StrictlyPositiveOrthant
+from torus import SubvarietyOfTorus, CountException
+from convex import conify_polyhedron, DirectProductOfPolyhedra, StrictlyPositiveOrthant, RationalSet
 from triangulate import topologise_cone
 from surf import SURF
-from util import normalise_poly, terms_of_polynomial
+from cycrat import CyclotomicRationalFunction
+from util import normalise_poly, terms_of_polynomial, symbolic_to_ratfun
 
 import itertools
 
 from util import create_logger
+from reps import padically_evaluate_monomial_integral
+
 logger = create_logger(__name__)
 
 BALANCE_FULL_BOUND = 10
@@ -171,7 +174,7 @@ class SubobjectDatum(ZetaDatum):
         for C in chops:
             yield SubobjectDatum(C, strategy=self.strategy)
             
-class SubobjectZetaProcessor(TopologicalZetaProcessor):
+class SubobjectZetaProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
     def __init__(self, algebra, objects, strategy=None):
         self.algebra = algebra
         self.objects = objects
@@ -301,6 +304,70 @@ class SubobjectZetaProcessor(TopologicalZetaProcessor):
 
             for S in surfs:
                 yield SURF(scalar=chi*S.scalar, rays=S.rays)
+
+    # def purge_denominator(self, denom):
+    #     raise NotImplementedError
+    #     return CyclotomicRationalFunction(denom.polynomial,
+    #                                       [vector(ZZ,(0,-self.algebra.rank))] + [ (a,b) for (a,b) in denom.exponents[1:] if a > 0 and b >= 0])
+
+    def padically_evaluate(self, shuffle=False):
+        q = var('q')
+        res = q**self.algebra.rank / (q - 1)**self.algebra.rank * LocalZetaProcessor.padically_evaluate(self, shuffle=shuffle)
+        return res.factor() if res else res
+
+    def padically_evaluate_regular(self, datum):
+        T = datum.toric_datum
+        if not T.is_regular():
+            raise ValueError('Can only processed regular toric data')
+
+        M = Set(range(T.length()))
+        q = SR.var('q')
+
+        alpha = {} 
+
+        for I in Subsets(M):
+            F = [T.initials[i] for i in I]
+            V = SubvarietyOfTorus(F, torus_dim=T.ambient_dim)
+            alpha[I] = V.count()
+
+        Z = {}
+
+        def cat(u,v):
+            return vector(list(u) + list(v))
+
+        for I in Subsets(M):
+            cnt = sum((-1)**len(J)*alpha[I+J] for J in Subsets(M-I))
+            if not cnt:
+                continue
+
+            P = DirectProductOfPolyhedra(T.polyhedron, StrictlyPositiveOrthant(len(I)))
+
+            it = iter(identity_matrix(ZZ, len(I)).rows())
+            ieqs = []
+            for i in M:
+                ieqs.append(
+                    cat(vector(ZZ,(0,)),
+                        cat(
+                            vector(ZZ, T.initials[i].exponents()[0]) -
+                            vector(ZZ, T.lhs[i].exponents()[0]),
+                            next(it) if i in I else zero_vector(ZZ,len(I))
+                            )
+                        )
+                    )
+
+            if not ieqs:
+                ieqs = [ vector(ZZ, (T.ambient_dim+len(I)+1) * [0]) ]
+
+            Q = Polyhedron(ieqs=ieqs, base_ring=QQ, ambient_dim=T.ambient_dim+len(I))
+
+            foo, ring = symbolic_to_ratfun(cnt * (q-1)**len(I)/q**(T.ambient_dim), [var('t'),var('q')])
+            corr_cnt = CyclotomicRationalFunction.from_laurent_polynomial(foo, ring)
+
+            Phi = matrix([ cat(T.integrand[0], zero_vector(ZZ,len(I))),
+                           cat(T.integrand[1], vector(ZZ, len(I)*[-1])) ]).transpose()
+            sm = RationalSet([P.intersection(Q)]).generating_function()
+            for z in sm.monomial_substitution(QQ['t','q'], Phi):
+                yield corr_cnt * z
         
     def __repr__(self):
         return 'Subobject zeta processor\nAlgebra:\n%s\nObjects: %s\nRoot:\n%s' % (self.algebra, self.objects, self.root())

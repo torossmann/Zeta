@@ -6,6 +6,8 @@ from itertools import chain
 from distutils.spawn import find_executable
 from pkg_resources import resource_exists, resource_filename
 
+import os
+
 import logging
 handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
@@ -49,6 +51,11 @@ def monomial_log(g):
 def monomial_exp(R, v):
     return prod(map(lambda w: w[0]**w[1], zip(R.gens(),list(v))))
 
+def split_vector(v):
+    vpos = vector( x if x > Integer(0) else Integer(0) for x in v)
+    vneg = vector(-x if x < Integer(0) else Integer(0) for x in v)
+    return (vpos, vneg)
+
 def E(n, i, j, ring=QQ):
     A = Matrix(ring, n)
     A[i,j] = 1
@@ -69,6 +76,16 @@ def initial_form_by_direction(f, y):
     w = min(weights)
     return sum(coeff[k]*mon[k] for k in xrange(len(mon)) if weights[k] == w)
 
+def vertex_by_direction(polytope, y):
+    """Return one(!) vertex on the face of 'polytope' defined by
+    minimising 'y'.
+    """
+    if polytope.is_empty():
+        raise ValueError('need a non-empty polytope')
+    vertices = polytope.vertices_matrix().transpose()
+    w = min(x*y for x in vertices)
+    return next(x for x in vertices if x*y == w)
+    
 def is_subpolynomial(f, a):
     """Test if `a' is a sum of terms of the polynomial `f'.
     """
@@ -110,6 +127,12 @@ def normalise_laurent_polynomial(f):
 def terms_of_polynomial(f):
     return [c*t for c,t in zip(f.coefficients(), f.monomials())]
 
+def evaluate_polynomial(f, v):
+    if not f:
+        return f.parent().zero()
+    exp = lambda e: prod(x ** e for (x,e) in zip(v,e))
+    return sum(scalar * exp(e) for (scalar, e) in zip(f.coefficients(), f.exponents()))
+
 import contextlib, shutil, tempfile
 
 @contextlib.contextmanager
@@ -125,6 +148,7 @@ def TemporaryDirectory(delete=True):
 def cd(dir):
     oldcwd = os.getcwd()
     try:
+        os.chdir(dir)
         yield
     finally:
         os.chdir(oldcwd)
@@ -135,14 +159,15 @@ def readable_filesize(size):
                         if size <= 512*1024*1024 else (size/1024.0/1024.0/1024.0, 'GB'))
               
 def my_find_executable(name):
-    foo = find_executable(name)
-    if foo:
-        return os.path.abspath(foo)
+    s = os.path.join('bin', name)
     try:
-        if resource_exists('Zeta', name):
-            return resource_filename('Zeta', name)
+        if resource_exists('Zeta', s):
+            return os.path.abspath(resource_filename('Zeta', s))
     except:
-        return None
+        pass
+
+    filename = find_executable(name)
+    return os.path.abspath(filename) if filename else None
 
 def minimal_elements(P, lte):
     # Let (P,lte) be a preordered set. Find a set of representatives
@@ -161,10 +186,8 @@ def minimal_elements(P, lte):
     return [P[i] for i in active]
 
 def squarefree_part(f):
-    if not f:
-        return f
-    R = f.parent()
-    return R(prod(h for h,_ in f.factor()))
+    # NOTE: f.factor().unit() is discarded
+    return f.parent().prod(h for h,_ in f.factor()) if f else f
 
 def split_off_torus(F):
     # Given a list F of polynomials, return G,d,T where len(F) == len(G)
@@ -198,6 +221,14 @@ def principal_minors(A, size):
         li.append(A.base_ring()(A.matrix_from_rows_and_columns(idx, idx).determinant()))
     return li
 
+def upper_triangular_matrix(R, d, entries):
+    entries = iter(entries)
+    M = matrix(R, d, d)
+    for i in xrange(d):
+        for j in xrange(i, d):
+            M[i,j] = next(entries)
+    return M
+
 def MyCompositions(n,length):
     if n < length or not length:
         return
@@ -208,3 +239,81 @@ def MyCompositions(n,length):
     for i in xrange(1, n-length+2):
         for c in MyCompositions(n-i, length-1):
             yield [i] + c
+          
+def common_overring(R, S):
+    if R.has_coerce_map_from(S):
+        return R
+    elif S.has_coerce_map_from(R):
+        return S
+    else:
+        combined_vars = list(set(R.base_ring().gens()) | set(S.base_ring().gens()))
+        K = FractionField(PolynomialRing(QQ, len(combined_vars), combined_vars))
+        return PolynomialRing(K, R.gens())
+
+def is_block_diagonal_matrix(A, blocks):
+    if not A.is_square():
+        raise ValueError
+
+    partial_sums = [sum(blocks[:i]) for i in xrange(len(blocks)+1)]
+    n = A.nrows()
+    if partial_sums[-1] != n:
+        raise ValueError
+
+    for r in xrange(len(partial_sums)-1):
+        a = partial_sums[r]
+        b = partial_sums[r+1]
+
+        for i in xrange(a,b):
+            for j in xrange(b,n):
+                if A[i,j] != 0 or A[j,i] != 0:
+                    return False
+    return True
+
+def symbolic_to_polynomial(f, vars):
+    # Rewrite a symbolic expression as a polynomial over SR in a given
+    # list of variables.
+
+    poly = f.polynomial(QQ)
+    allvars = poly.variables()
+
+    indices = []
+    for x in allvars:
+        try:
+            indices.append(vars.index(x))
+        except ValueError:
+            indices.append(None)
+
+    R = PolynomialRing(SR, len(vars), vars)
+    res = R.zero()
+    for coeff, alpha in zip(poly.coefficients(), poly.exponents()):
+        if type(alpha) == int:
+            # Once again, univariate polynomials receive special treatment
+            # in Sage.
+            alpha = [alpha]
+
+        term = R(coeff)
+        for i, e in enumerate(alpha):
+            if not e:
+                continue
+            if indices[i] is None:
+                term *= SR(allvars[i]**e)
+            else:
+                term *= R.gen(indices[i])**e
+        res += term
+    return res
+
+def symbolic_to_ratfun(f, vars):
+    R = PolynomialRing(QQ, len(vars), vars)
+    try:
+        return R(f.numerator())/R(f.denominator()), R
+    except TypeError:
+        pass
+
+    num = symbolic_to_polynomial(f.numerator(), vars)
+    den = symbolic_to_polynomial(f.denominator(), vars)
+    return num/den, num.parent()
+
+def augmented_env(filename):
+    env = os.environ.copy()
+    env['PATH'] = os.path.dirname(filename) + os.path.pathsep + env.get('PATH','')
+    return env

@@ -13,6 +13,8 @@ from util import create_logger
 logger = create_logger(__name__)
 
 class LaurentPolynomial:
+    __slots__ = ['ring', 'nvars', 'den', 'num', 'f']
+
     def __init__(self, f):
         # NOTE: f should belong to a *multivariate* polynomial ring over
         # a field or to its field of fractions.
@@ -101,6 +103,9 @@ class LaurentPolynomial:
 class LaurentIdeal:
     # Ideals of the rings of RS-integer Laurent polynomials.
     # Detects units, removes zeros and multiples.
+
+    __slots__ = ['ring', 'gens', 'initials', 'RS']
+
     def __init__(self, gens, initials=None, RS=None, ring=None, normalise=False):
         initials = [None for f in gens] if initials is None else list(initials)
 

@@ -8,7 +8,9 @@ from sage.geometry.cone import ConvexRationalPolyhedralCone
 import itertools
 from collections import Iterable
 
-from util import monomial_exp, cached_simple_method
+import common
+
+from util import monomial_exp, vertex_by_direction, cached_simple_method
 
 import triangulate
 
@@ -23,7 +25,6 @@ def conify_polyhedron(P):
         Lplus = [vector(QQ,v) for v in P.lines()]
         Lminus = [-v for v in Lplus]
         return Cone(V+R+Lplus+Lminus, lattice=ZZ**P.ambient_dim())
-    
 
 def is_contained_in_dual(C, D):
     """Test if the cone C is contained in the dual of the cone D.
@@ -51,7 +52,17 @@ def inner_open_normal_fan(N):
     We approximate 'x > 0' via 'x >= 1', see the part on 'models' of half-open
     cones in the second paper.
     """
+    
+    if N.is_empty():
+        raise ValueError('need a non-empty polytope')
+
     V = [vector(QQ,v) for v in N.vertices()]
+
+    if len(V) == 1:
+        # Confusingly, given an empty list of (in)equalities, Sage
+        # returns the empty polyhedron instead of the whole space.
+        yield Polyhedron(eqns=[(N.ambient_dim()+1) * (0,)])
+        return
 
     for face in N.face_lattice():
         if face.dim() == -1:
@@ -208,7 +219,22 @@ class RationalSet:
 
         for scone in self.triangulate_max(dims=dims):
             yield triangulate._topologise_scone(scone, Phi)
-            
+
+    def generating_function(self, vars='x', base_list=None):
+        if not self.polyhedra:
+            raise NotImplementedError
+        R = PolynomialRing(QQ, vars, self.ambient_dim)
+
+        from smurf import SMURF
+        if not common.count:
+            raise RuntimeError("'count' needs to be present in order to compute generating functions")
+
+        # f = SMURF.from_polyhedron if common.count else SMURF.from_half_open_cone
+        f = SMURF.from_polyhedron
+
+        return SMURF((sm for P in self.polyhedra for sm in f(P, R)),
+                     base_list=base_list)
+
     def is_empty(self):
         return not self.polyhedra
 
@@ -241,17 +267,3 @@ class RationalSet:
             s += '[%d]:\n\tdim = %d\n\t' % (i, P.dim())
             s += '\n\t'.join(str(h) for h in P.Hrep_generator()) + '\n'
         return s
-
-def vertex_minimiser(P):
-    # Decompose the ambient space into half-open cones C such that min<P,-> = <alpha,-> on each C.
-    # Yields C, alpha.
-    if P.is_empty():
-        raise ValueError('need a non-empty polytope')
-
-    A = P.vertices_matrix().transpose()
-    n = P.ambient_dim()
-    for i, alpha in enumerate(A):
-        ieqs = [ [ 0] + list(A[j]-alpha) for j in xrange(i+1,A.nrows()) ]
-        ieqs +=[ [-1] + list(A[j]-alpha) for j in xrange(i) ]
-        ieqs +=[ [0] * (n+1)] # Needed if P is a point.
-        yield Polyhedron(ieqs=ieqs, ambient_dim=n), alpha

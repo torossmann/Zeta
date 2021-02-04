@@ -1,13 +1,18 @@
 from sage.all import *
 
 from abc import ABCMeta, abstractmethod
-from tmplist import TemporaryList
+from tmplist import TemporaryList, DiskList
 
 from util import TemporaryDirectory, readable_filesize
+
+import addmany
 
 import surf
 import common
 import random
+
+import itertools
+from cycrat import CyclotomicRationalFunction
 
 from contextlib import closing
 from util import create_logger
@@ -175,3 +180,105 @@ class TopologicalZetaProcessor(GeneralZetaProcessor):
                 finally:
                     for Q in surfsums:
                         Q.close()
+
+class LocalZetaProcessor(GeneralZetaProcessor):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def padically_evaluate_regular(self, datum):
+        pass
+
+    #def purge_denominator(self, denom):
+    #    return denom
+
+    # def degree_bound_in_t(self):
+    #     """Returns an upper bound in 't' for the degree of a generic local zeta function.
+    #     """
+    #     return +Infinity
+
+    # def degree_bound_in_q(self):
+    #     """Returns an upper bound in 'q' for the degree of a generic uniform local zeta function.
+    #     """
+    #     return +Infinity
+
+    def padically_evaluate(self, shuffle=False):
+        with TemporaryList() as regular:
+            logger.info('Beginning main loop.')
+            self.process(regular)
+            logger.info('Main loop finished successfully.')
+            logger.info('Total number of regular data: %d' % len(regular))
+
+            with TemporaryDirectory() as tmpdir:
+                eval_filenames = [os.path.join(tmpdir, 'eval%d' % k) for k in xrange(common.ncpus)]
+                def evaluate(k):
+                    def fun(i):
+                        try:
+                            Q = DiskList(eval_filenames[k])
+                            for a in self.padically_evaluate_regular(regular[i]):
+                                Q.append(a)
+                        except Exception as e: # For debugging, change this to 'except RuntimeError as E'.
+                            return e
+                        else:
+                            return True
+
+                    if common.plumber and not common.debug:
+                        fun = sage.parallel.decorate.fork(fun)
+                            
+                    for i in xrange(k, len(regular), common.ncpus):
+                        e = fun(i)
+                        if e is not True:
+                            raise e # This will result in 'NO DATA' being returned below.
+                    logger.info('Evaluator #%d finished.' % k)
+
+                ET = sage.parallel.decorate.parallel(p_iter='reference' if common.debug else 'fork', ncpus=common.ncpus)(evaluate)
+                logger.info('Launching %d evaluators.' % common.ncpus)
+                for (arg, ret) in ET(range(common.ncpus)):
+                    if ret == 'NO DATA':
+                        raise RuntimeError('A parallel process died.')
+                logger.info('All evaluators finished.')
+
+                eval_filenames = addmany.optimise(eval_filenames)
+                logger.info('Total number of rational functions: %d' % sum(len(DiskList(f)) for f in eval_filenames))
+
+                if common.addmany_dispatcher != 'symbolic':
+                    denom = CyclotomicRationalFunction.common_denominator(itertools.chain.from_iterable(DiskList(f) for f in eval_filenames))
+                    logger.info('Degree of denominator in (t,q): (%d,%d)'  % (-denom.degree(0), -denom.degree(1)))
+                else:
+                    denom = None
+
+                # if common.addmany_dispatcher.find('interpol') != -1:
+                #     purged_denom = self.purge_denominator(denom)
+                #     logger.info('Degree of purged denominator in (t,q): (%d,%d)' % (-purged_denom.degree(0), -purged_denom.degree(1)))
+
+                #     bound_t, bound_q = -Infinity, -Infinity
+                #     for cr in itertools.chain.from_iterable(DiskList(f) for f in eval_filenames):
+                #         bound_t = max(bound_t, cr.degree(0))
+                #         bound_q = max(bound_q, cr.degree(1))
+                #     logger.debug('bound_t = %d, bound_q = %d' % (bound_t,bound_q))
+                # else:
+                #     purged_denom = None
+                #     bound_t = None
+                #     bound_q = None
+
+                ncpus = common.ncpus
+                if common._alt_ncpus is not None:
+                    common.ncpus = common._alt_ncpus
+
+                try:
+                    res = addmany.addmany(eval_filenames, denom)
+                finally:
+                    common.ncpus = ncpus
+
+                with open(os.path.join(tmpdir, 'unfactored'), 'w') as f:
+                    f.write(str(res)) # just in case factoring runs out of memory
+
+                # Final recovery.
+                logger.info('Factoring final result.')
+
+                if res.parent() == SR:
+                    res = res.factor() if res else res
+                elif res:
+                    fac = res.factor()
+                    res = SR(fac.unit()) * SR.prod(SR(a)**i for a,i in fac)
+                logger.info('All done.')
+                return res

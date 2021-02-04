@@ -6,7 +6,8 @@ ring structures on ZZ^n.
 from sage.all import *
 from convex import PositiveOrthant
 from toric import ToricDatum
-from util import normalise_poly, monomial_log, cached_simple_method
+from util import normalise_poly, monomial_log, cached_simple_method, \
+    upper_triangular_matrix, is_block_diagonal_matrix
 
 import common
 import multiprocessing
@@ -17,7 +18,7 @@ class Algebra:
     """Additively free non-associative ZZ-algebras with optional operators.
     """
 
-    def __init__(self, table=None, rank=None, operators=None,
+    def __init__(self, table=None, rank=None, blocks=None, operators=None,
                  matrix=None, bilinear=False, simple_basis=False,
                  descr=None, matrix_basis=None, product=None):
 
@@ -47,12 +48,15 @@ class Algebra:
                 self.rank = n + Integer(1)
                 w = vector(QQ, n * [Integer(0)] + [Integer(1)])
                 self.table = [ [ A[i,j] * w for j in xrange(n) ] + [ 0 * w ] for i in xrange(n) ] + [ [ 0 * w for j in xrange(n+1) ] ]
+
+            self.blocks = (self.rank,) if blocks is None else tuple(blocks)
             return
                 
         # If the rank is set, always initialise an empty table.
         if not(rank is None):
             self.rank = rank
             self.table = [ [ vector(QQ, self.rank) for j in xrange(self.rank) ] for i in xrange(self.rank) ]
+            self.blocks = (self.rank,) if blocks is None else tuple(blocks)
 
         if isinstance(table, dict):
             if rank is None:
@@ -63,6 +67,8 @@ class Algebra:
 
         if isinstance(table, list):
             self.rank = len(table)
+
+            self.blocks = (self.rank,) if blocks is None else tuple(blocks)
             self.table = [ [ vector(QQ, v) for v in row ] for row in table ]
             return
         
@@ -79,6 +85,8 @@ class Algebra:
                 raise TypeError('unknown type of product')
 
             self.rank = len(matrix_basis)
+            self.blocks = (self.rank,) if blocks is None else tuple(blocks)
+
             matrix_basis = [Matrix(QQ, b) for b in matrix_basis]
             A = Matrix(QQ, [b.list() for b in matrix_basis])
 
@@ -93,7 +101,7 @@ class Algebra:
 
     def multiply(self, v, w, ring=QQ):
         return vector(ring, 
-                      [ sum(v[i] * w[j] * self.table[i][j][k] for i in xrange(self.rank) for j in xrange(self.rank)) for k in xrange(self.rank) ]
+                      [ sum(v[i] * w[j] * ring(self.table[i][j][k]) for i in xrange(self.rank) for j in xrange(self.rank)) for k in xrange(self.rank) ]
                       )
 
     def ideal(self, vecs, ring=QQ):
@@ -191,16 +199,19 @@ class Algebra:
         return True
 
     # Use rows of a matrix as the new basis.
-    def change_basis(self, A):
+    def change_basis(self, A, check=True):
+        if check and not is_block_diagonal_matrix(A, self.blocks):
+            raise ValueError('the given matrix does not preserve the block structure')
+
         A = matrix(QQ, A)
         if not A.is_invertible():
             raise TypeError('The argument must be an invertible matrix over QQ.') 
         return Algebra( table = [[ self.multiply( A[i], A[j] ) * A.inverse() for j in xrange(self.rank) ] for i in xrange(self.rank)],
-                        operators = [ A**(-1) * op * A for op in self.operators ]  )
+                        operators = [ A**(-1) * op * A for op in self.operators ], blocks = self.blocks )
 
     @cached_simple_method
     def _Lie_centre(self):
-        # Construc the QQ-space of all z with a*z == z*a == 0 for all a.
+        # Construct the QQ-space of all z with a*z == z*a == 0 for all a.
         Z = QQ**self.rank
         for i in xrange(self.rank):
             Z = Z.intersection(
@@ -217,6 +228,9 @@ class Algebra:
     def _adjusted_basis(self):
         # Construct a basis of 'self' as in (Stasinski & Voll 2014, Section 2.2.2);
         # we ignore finitely many primes.
+        if len(self.blocks) > 1:
+            raise NotImplementedError
+
         if not (self.is_Lie() and self.is_nilpotent() and self.rank > 0):
             raise NotImplementedError()
 
@@ -232,6 +246,9 @@ class Algebra:
 
     @cached_simple_method
     def _commutator_matrices(self):
+        if len(self.blocks) > 1:
+            raise NotImplementedError
+
         A, dims = self._adjusted_basis()
         d = dims[1] + dims[2] # = dim of commutator ideal
         r = dims[0] + dims[1] # = codim of centre
@@ -262,23 +279,21 @@ class Algebra:
         if not objects in ['subalgebras', 'ideals', 'left ideals', 'right ideals']:
             raise TypeError('Unknown objects.')
 
-        R = PolynomialRing(QQ, self.rank * (self.rank + 1) // 2, name)
+        if sum(self.blocks) != self.rank:
+            raise ValueError('blocks and rank do not match')
 
-        # Upper triangular matrices.
-        cnt = 0
-        M = matrix(R, self.rank, self.rank)
-        for i in xrange(self.rank):
-            for j in xrange(i, self.rank):
-                M[i,j] = R.gen(cnt)
-                cnt = cnt + 1
+        nvars = sum(binomial(a+1,2) for a in self.blocks)
+        R = PolynomialRing(QQ, nvars, name)
+        entries = iter(R.gens())
 
-        D = prod(M.diagonal()) # D = det(M)
+        M = block_diagonal_matrix([upper_triangular_matrix(R, a, entries) for a in self.blocks])
+        D = prod(M.diagonal())
 
-        zoo = prod(M[i,i]**(i+1) for i in xrange(self.rank))
-        integrand = ( monomial_log(D), monomial_log(zoo) - vector(QQ,R.ngens() * [1]) )
+        diag = iter(M.diagonal())
+        zoo = prod(next(diag)**(i+1) for a in self.blocks for i in xrange(a))
+        integrand = (monomial_log(D), monomial_log(zoo) - vector(QQ,R.ngens() * [1]))
 
         Madj = M.adjoint()
-
         E = identity_matrix(R, self.rank)
         li = []
         def insert_components(w):
@@ -332,12 +347,13 @@ class Algebra:
                                initials=None,
                                polyhedron=PositiveOrthant(R.ngens())
                                )
-        return T.simplify()
+        return T.simplify() if T.weight() < common._simplify_bound else T
 
     def find_good_basis(self, objects='subalgebras', name='x'):
         """Find a basis yielding a 'good' toric datum.
         
-        Presently we only look at permutations of the given basis.
+        Presently we only look at permutations of the given basis
+        (preserving the block structure, if any).
         """
 
         def weight(g):
@@ -345,21 +361,34 @@ class Algebra:
             L = self.change_basis(A)
             return L.toric_datum(objects=objects, name=name).weight()
 
+        Sn = SymmetricGroup(self.rank)
+        partial_sums = [sum(self.blocks[:i]) for i in xrange(len(self.blocks)+1)]
+        gens = []
+        for r in xrange(len(partial_sums)-1):
+            a = partial_sums[r]
+            b = partial_sums[r+1]
+            G = SymmetricGroup(range(a+1,b+1)) # NOTE: SymmetricGroup(n) acts on [1,...,n] instead of range(n).
+            f = G.hom(Sn)
+            gens.extend(f(g) for g in G.gens())
+        G = Sn.subgroup(gens)
+
         best_weight, best_permutation = Infinity, None
-        for (arg,w) in (parallel(ncpus=common.ncpus)(weight))(list(SymmetricGroup(self.rank))):
+        for (arg,w) in (parallel(ncpus=common.ncpus)(weight))(list(G)):
             g = arg[0][0]
             if w == 'NO DATA':
                 w = weight(g)
             if w < best_weight:
                 best_weight, best_permutation = w, g
         return matrix(QQ, best_permutation.matrix())
-
     
     def __str__(self):
         if self.descr:
             S = self.descr + '\n'
         else:
             S = "Additively free ZZ-algebra of rank " + str(self.rank) + " with multiplication table\n"
+
+        if len(self.blocks) > 1:
+            S = S + 'Blocks: %s\n' % list(self.blocks)
 
         for row in self.table:
             S = S + '\t'
@@ -369,13 +398,16 @@ class Algebra:
 
         if len(self.operators) > 0:
             S += 'Operators: ' + str(len(self.operators)) + '\n'
- 
+            
         return S[:-1]
 
     def __repr__(self):
         return '%s(**%s)' % (self.__class__, self.__dict__)
 
 def tensor_with_duals(L):
+    if len(L.blocks) > 1:
+        raise NotImplementedError
+
     n = L.rank
     shift = n * [n]
     zero  = n * [0]
@@ -392,6 +424,9 @@ def tensor_with_duals(L):
     return Algebra(table=[[f(i,j) for j in xrange(2*n)] for i in xrange(2*n)])
 
 def tensor_with_3duals(L):
+    if len(L.blocks) > 1:
+        raise NotImplementedError
+
     n = L.rank
     shift = n * [n]
     zero  = n * [0]
@@ -412,4 +447,3 @@ def tensor_with_3duals(L):
         else:
             return zero + zero + zero
     return Algebra(table=[[f(i,j) for j in xrange(3*n)] for i in xrange(3*n)])
-

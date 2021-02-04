@@ -10,7 +10,7 @@ from shutil import rmtree
 
 import string, subprocess, os
 
-from util import TemporaryDirectory, cd, my_find_executable
+from util import TemporaryDirectory, cd, my_find_executable, augmented_env
 
 from tmplist import TemporaryList
 
@@ -36,23 +36,36 @@ def _explode_vector(v):
             ) + ' ' + str(v[-1])
 
 def _normalize_cone(C):
-    # Produce valid normaliz input from cone. Please note the fabulous pun!
+    # Produce valid normaliz input from cone.
     s = '%d\n%d\n' % (C.nrays(), C.lattice_dim())
     for r in C.rays():
         s += _explode_vector(r) + '\n'
     return s + 'integral_closure\n'
 
-def _triangulate_cone_internal(C):
+def _triangulate_cone_internal(C, all_cones=False):
     rays = list(C.rays())
     if any(a < 0 for r in rays for a in r):
         raise ValueError('Internal triangulation only implemented for non-negative cones.')
     normalised_rays = [Integer(1)/v.norm(1) * vector(QQ,v) for v in rays]
-    for indices in PointConfiguration(normalised_rays).triangulate() if len(normalised_rays) > 1 else [[0]]:
-        subrays = [rays[i] for i in indices]
-        multiplicity = prod(a for a in matrix(ZZ,subrays).elementary_divisors() if a != 0)
-        yield SCONE(rays=subrays, multiplicity=multiplicity)
 
-def _triangulate_cone_normaliz(C):
+    with TemporaryList() as maximal_faces:
+        for indices in PointConfiguration(normalised_rays).triangulate() if len(normalised_rays) > 1 else [[0]]:
+            subrays = [rays[i] for i in indices]
+            if all_cones:
+                maximal_faces.append(indices)
+            else:
+                multiplicity = prod(a for a in matrix(ZZ,subrays).elementary_divisors() if a != 0)
+                yield SCONE(rays=subrays, multiplicity=multiplicity)
+
+        if all_cones:
+            X = SimplicialComplex(maximal_faces=maximal_faces, maximality_check=False)
+            for f in X.face_iterator():
+                yield SCONE(rays = [rays[i] for i in f], multiplicity=-1)
+
+def _triangulate_cone_normaliz(C, all_cones):
+    if all_cones:
+        raise NotImplementedError
+
     with TemporaryDirectory() as tmpdir:
         logger.debug('Temporary directory of this normaliz session: %s' % tmpdir)
 
@@ -62,49 +75,69 @@ def _triangulate_cone_normaliz(C):
 
         with cd(tmpdir), open('/dev/null', 'w') as DEVNULL:
             retcode = subprocess.call(
-                [common.normaliz, '-B', '-t', '-T', '-x=1', play], # -c
-                stdout=DEVNULL, stderr=DEVNULL
+                [common.normaliz, '-B', '-t', '-T', '-x=1', play],
+                stdout=DEVNULL, stderr=DEVNULL,
+                env=augmented_env(common.normaliz)
                 )
         if retcode != 0:
             raise RuntimeError('Normaliz failed')
 
-        # Recover all the rays from the triangulation
-        with TemporaryList() as rays:
-            with open(play+'.tgn', 'r') as f:
-                nrays = int(f.readline())
-                ambdim = int(f.readline())
-                rays = []
-                if ambdim != C.lattice_dim():
-                    raise RuntimeError('The triangulation lives in the wrong space')
-                for line in f:
-                    rays.append([int(w) for w in line.split()])
-        
-                if len(rays) != nrays:
-                    raise RuntimeError('Number of rays is off')
-                logger.info('Total number of rays in triangulation: %d' % nrays)
+        with TemporaryList() as maximal_faces:
+            # Recover all the rays from the triangulation
+            with TemporaryList() as rays:
+                with open(play+'.tgn', 'r') as f:
+                    nrays = int(f.readline())
+                    ambdim = int(f.readline())
+                    rays = []
+                    if ambdim != C.lattice_dim():
+                        raise RuntimeError('The triangulation lives in the wrong space')
+                    for line in f:
+                        rays.append([int(w) for w in line.split()])
 
-            # Recover the simplicial pieces
-            cnt = 0
-            with open(play+'.tri', 'r') as f:
-                ncones = int(f.readline())
-                mplus1 = int(f.readline())
+                    if len(rays) != nrays:
+                        raise RuntimeError('Number of rays is off')
+                    logger.debug('Total number of rays in triangulation: %d' % nrays)
 
-                if mplus1 != C.dim() + 1:
-                    raise RuntimeError('.tri and .tgn files do not match')
-                for line in f:
-                    cnt += 1
-                    li = [int(w) for w in line.split()]
-                    if li[-1] == -1:
-                        raise RuntimeError('Multiplicity is missing from Normaliz output')
-                    yield SCONE(rays = [rays[i-1] for i in li[:-1]],
-                                multiplicity = li[-1]
-                                )
-        logger.info('Total number of cones in triangulation: %d' % cnt)
-        if cnt != ncones:
-            raise RuntimeError('Number of simplicial cones is off')
+                # Recover the simplicial pieces
+                cnt = 0
+                with open(play+'.tri', 'r') as f:
+                    ncones = int(f.readline())
+                    mplus1 = int(f.readline())
 
-def triangulate_cone(C):
-    return _triangulate_cone_normaliz(C) if common.normaliz else _triangulate_cone_internal(C)
+                    if mplus1 != C.dim() + 1:
+                        raise RuntimeError('.tri and .tgn files do not match')
+                    for line in f:
+                        if line == 'plain\n':
+                            continue
+                        elif line == 'nested\n':
+                            raise RuntimeError('Normaliz returned a nested triangulation; this should never happen')
+
+                        cnt += 1
+                        li = [int(w) for w in line.split()]
+                        if li[-1] == -1:
+                            raise RuntimeError('Multiplicity is missing from Normaliz output')
+
+                        if all_cones:
+                            maximal_faces.append([i-1 for i in li[:-1]])
+                            # Note that we discard all multiplicities in this case.
+                        else:
+                            yield SCONE(rays = [rays[i-1] for i in li[:-1]],
+                                        multiplicity = li[-1]
+                                        )
+
+            logger.debug('Total number of cones in triangulation: %d' % cnt)
+            if cnt != ncones:
+                raise RuntimeError('Number of simplicial cones is off')
+
+            if all_cones:
+                X = SimplicialComplex(maximal_faces=maximal_faces, maximality_check=False)
+                for f in X.face_iterator():
+                    yield SCONE(rays = [rays[i] for i in f], multiplicity=-1)
+
+def triangulate_cone(C, all_cones=False):
+    if all_cones:
+        raise NotImplementedError
+    return _triangulate_cone_normaliz(C, all_cones) if common.normaliz else _triangulate_cone_internal(C, all_cones)
 
 def _topologise_scone(sc, Phi):
     if not sc.rays:

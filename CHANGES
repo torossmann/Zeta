@@ -1,9 +1,20 @@
 ************************************************************************
+0.3
+************************************************************************
+
+* Added support for computations of generic local zeta functions.
+
+* Computations of topological representation zeta functions are now
+  often substantially faster.
+
+* Added support for graded subobject zeta functions.
+
+************************************************************************
 0.2.1
 ************************************************************************
 
-* Fixed the `optimise_basis' option which did not work in recent versions
-  of Sage.
+* Fixed the `optimise_basis' option which did not work in recent
+  versions of Sage.
 
 ************************************************************************
 0.2

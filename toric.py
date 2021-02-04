@@ -123,7 +123,7 @@ class ToricDatum:
 
         self.ring = ring
         self.ambient_dim = ring.ngens()
-        self.integrand = tuple(integrand) # TODO: turn into vectors!
+        self.integrand = tuple(integrand)
         self.polyhedron = polyhedron
         self._coll_idx = None
         self._ordered = False
@@ -182,8 +182,6 @@ class ToricDatum:
     def _purge_multiples(self):
         if self.is_empty():
             return self
-
-        # TODO: Test if F[j]/F[i] is integer-valued; it need not be monomial
 
         D = conify_polyhedron(self.polyhedron)
         F = FractionField(self.ring)

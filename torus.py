@@ -9,9 +9,21 @@ from convex import mixed_volume
 from util import normalise_laurent_polynomial, squarefree_part, monomial_exp, \
     terms_of_polynomial, cached_simple_method, split_off_torus
 
+from common import symbolic_count_varieties
+
+import common
+
 from util import create_logger, MyCompositions
 
 logger = create_logger(__name__)
+
+def symbolic_variable(V):
+    try:
+        idx = symbolic_count_varieties.index(V)
+    except ValueError:
+        idx = len(symbolic_count_varieties)
+        symbolic_count_varieties.append(V)
+    return var('sc_%d' % idx)
 
 # def monomial_sat(I):
 #     R = I.ring()
@@ -20,7 +32,7 @@ logger = create_logger(__name__)
 #     _, sat = singular.mstd(sat)
 #     return R.ideal(sat)
 
-class EulerException(Exception):
+class CountException(Exception):
     pass
 
 class SubvarietyOfTorus:
@@ -51,11 +63,16 @@ class SubvarietyOfTorus:
         self.polynomials = [self.ring.one()] if (1 in polynomials) else polynomials
         return
 
+    def __eq__(self, other):
+        if not self.torus_dim == other.torus_dim:
+            return False
+        return sorted(self.polynomials) == sorted(other.polynomials)
+
     def _solvable_conditions(self):
         """
         Produce all (i,x,g) such that F[i] == 0 is equivalent to x == g;
         here x is one of the defining variables and g is a Laurent polynomial
-        involving involving only variables != x.
+        which only involves variables != x.
         """
 
         vars = self.ring.gens()
@@ -152,6 +169,8 @@ class SubvarietyOfTorus:
 
                     # First attempt: Polynomial division.
                     _, r = F[i].quo_rem(F[j])
+                    r = squarefree_part(r)
+
                     if mu(r) < mu(F[i]):
                         logger.debug('(quo/rem) Replacing F[%d]=%s by %s' % (i,F[i],r))
                         F[i] = r if not r else normalise_laurent_polynomial(r/r.lc())
@@ -169,6 +188,8 @@ class SubvarietyOfTorus:
                                 if g == 1:
                                     continue
                                 r = (tj//g) * F[i] - (ti//g) * F[j]
+                                r = squarefree_part(r)
+
                                 if mu(r) < mu(F[i]):
                                     logger.debug('(reduce) Replacing F[%d]=%s by %s' % (i,F[i],r))
                                     logger.debug('(reduce) Using term %s of F[%d] and term %s of F[%d]'
@@ -224,53 +245,56 @@ class SubvarietyOfTorus:
         from toric import is_nondegenerate
         return is_nondegenerate(self.polynomials, all_subsets=False, all_initial_forms=True)
 
-    @cached_simple_method
-    def euler_characteristic(self):
+    def _count_general(self, level):
+        # Levels:
+        # -1 - Euler characteristic
+        #  0 - polynomial in q
+        #  1 - polynomial in q or roots of univariate polynomials
+        #  2 - general closed subvarieties of tori
+
+        euler = level < 0 # == only compute euler characteristic 
+        q = int(1) if euler else var('q')
+
         V,W = self.simplify_defining_equations().split_off_torus()
 
         if W.torus_dim > 0:
-            return 0
+            return 0 if euler else V._count_general(level) * (q-1)**W.torus_dim
 
         V = V.simplify_defining_equations()
         if not V.polynomials:
-            return 1 if V.torus_dim == 0 else 0
+            return (q-1)**V.torus_dim # note: 0**0 == 1
         elif any(f.is_constant() and f != 0 for f in V.polynomials):
-            return 0
-        elif V.is_nondegenerate():
+            return 0 if euler else SR(0) # empty set
+        elif euler and V.is_nondegenerate():
             logger.debug('The variety is Khovanskii-non-degenerate')
             return V.khovanskii_characteristic()
+
+        if not euler and V.torus_dim == 1:
+            assert len(V.polynomials) == 1
+            f = V.polynomials[0]
+            if len(f.factor()) == f.degree(): # check if f splits completely over QQ
+                return SR(f.degree())
+            if level == 0:
+                raise CountException('cannot handle number fields when level == 0')
+            else:
+                return symbolic_variable(V)
 
         logger.debug('Trying to decompose the variety...')
         F = V.polynomials
         I = range(len(F))
 
-        # TODO: use torus automorphisms, e.g. invert some variables
-
         for (i,x,g) in V._solvable_conditions():
-
-            # Suppose F[i] == 0 is equivalent to x == g(other vars), where g
-            # is a Laurent polynomial.
-            # Then the subvariety of Torus(n) defined by F is isomorphic to
-            # the complement of g == 0 in the subvariety of Torus(n-)1 defined
-            # by all F[j](x = g) for j != i.
-
             # NOTE: We need to specify the number of variables in the following
             # line for otherwise Sage might use a UNIVARIATE polynomial ring;
             # these behave differently.
-
             S = PolynomialRing(QQ, V.torus_dim-1, [y for y in V.ring.gens() if y != x])
-
-            # Rewrite remaining polynomials in the remaining variables.
             li = [S(normalise_laurent_polynomial(F[j].subs({x: g})))
                   for j in I if j != i]
-
-            # NOTE: We specify torus_dim in the following in case li == [].
             U = SubvarietyOfTorus(li, V.torus_dim-1)
             W = SubvarietyOfTorus([S(normalise_laurent_polynomial(g))] + li)
-
             try:
-                return U.euler_characteristic() - W.euler_characteristic()
-            except EulerException:
+                return U._count_general(level) - W._count_general(level)
+            except CountException:
                 pass
             else:
                 logger.debug('Successfully decomposed variety.')
@@ -283,6 +307,7 @@ class SubvarietyOfTorus:
             # characteristic zero.
             # (2) On v != 0, x == u/v is completely determined by the
             # remaining variables and the implicit condition u != 0.
+
             S = PolynomialRing(QQ, V.torus_dim-1, [y for y in V.ring.gens() if y != x])
             li = [S(F[j]) for j in I if j != i]
 
@@ -290,31 +315,41 @@ class SubvarietyOfTorus:
             Wu = SubvarietyOfTorus([S(u)]+li, V.torus_dim-1)
             Wv = SubvarietyOfTorus([S(v)]+li, V.torus_dim-1)
             Z = SubvarietyOfTorus([S(u), S(v)] + li, V.torus_dim-1)
+
             try:
-                return (U.euler_characteristic()
-                        - Wu.euler_characteristic()
-                        - Wv.euler_characteristic()
-                        + Z.euler_characteristic())
-                        
-            except EulerException:
+                return U._count_general(level) - Wu._count_general(level) - Wv._count_general(level) + q * Z._count_general(level)
+            except CountException:
                 pass
             else:
                 logger.debug('Succesfully isolated a variable.')
 
+        logger.debug('SubvarietyOfTorus._count_general failed. Defining polynomials: %s' % self.polynomials)
 
-        # Now would be a good time to use a general-purpose method
-        # for computing Euler characteristics...
+        if level < 2:
+            raise CountException('failed to %s' % ('compute Euler characteristic' if euler else 'count points'))
+        else:
+            return symbolic_variable(self)
 
-        logger.info('Failed to compute Euler characteristic')
-        logger.info('Defining polynomials: %s' % self.polynomials)
-
-        raise EulerException('Cannot compute Euler characteristic')
+    @cached_simple_method
+    def euler_characteristic(self):
+        return self._count_general(level=-1)
+            
+    @cached_simple_method
+    def count(self):
+        for i in ([0,1,2] if common.symbolic else [0]):
+            try:
+                return SR(self._count_general(level=i)).expand()
+            except CountException:
+                logger.debug('count (level=%d) failed: %s' % (i, self))
+        raise CountException('Failed to count number of rational points. Try switching to symbolic mode.')
         
     def __str__(self):
         if self.polynomials:
             return 'Subvariety of %d-dimensional torus defined by %s' % (self.torus_dim, self.polynomials)
         else:
             return 'Torus of dimension %d' % self.torus_dim
+
+    __repr__ = __str__
  
 def Torus(n):
     return SubvarietyOfTorus(torus_dim=n)

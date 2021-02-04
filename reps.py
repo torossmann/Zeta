@@ -1,15 +1,20 @@
 from sage.all import *
 
+import common
+
 import itertools
+
+import functools
 
 from util import create_logger, cached_simple_method
 
 logger = create_logger(__name__)
 
 from convex import conify_polyhedron, is_contained_in_dual, dual_cone_as_polyhedron, RationalSet
-from convex import vertex_minimiser, StrictlyPositiveOrthant, PositiveOrthant
+from convex import StrictlyPositiveOrthant, PositiveOrthant
+from convex import inner_open_normal_fan, vertex_by_direction
 
-from util import minimal_elements, principal_minors, split_off_torus
+from util import minimal_elements, principal_minors, split_off_torus, symbolic_to_ratfun
 
 from laurent import LaurentIdeal, LaurentPolynomial
 
@@ -19,8 +24,10 @@ from toric import is_nondegenerate
 
 from torus import SubvarietyOfTorus
 
-from abstract import ZetaDatum, ReductionError, TopologicalZetaProcessor
+from abstract import ZetaDatum, ReductionError, TopologicalZetaProcessor, LocalZetaProcessor
 from surf import SURF
+
+from cycrat import CyclotomicRationalFunction
 
 DEPTH_BOUND = 24
 
@@ -142,7 +149,6 @@ class IgusaDatum(ZetaDatum):
                                 all_subsets=True, all_initial_forms=False,
                                 collision_handler=lambda J: setattr(self, '_coll_idx', J))
 
-    # BEGIN HACK
     # def is_ordered(self):
     #     return len(self.RS.polyhedra) <= 1
 
@@ -152,7 +158,6 @@ class IgusaDatum(ZetaDatum):
     #         yield IgusaDatum([ LaurentIdeal(gens=I.gens, initials=I.initials,
     #                                         RS=RS, ring=I.ring, normalise=True)
     #                            for I in self.ideals], depth=self._depth)
-    # END HACK
 
     def _low_level_reduce(self, j, a, b, ta, tb, strict):
         return self._replace_single_ideal(j, self.ideals[j].reduce(a, b, ta, tb, strict))
@@ -206,7 +211,7 @@ class IgusaDatum(ZetaDatum):
 
         optval, optsol = Infinity, None
 
-        # bad from above consists of indices for self.polynomials.
+        # 'bad' from above consists of indices for self.polynomials.
         # Turn it into indices for self.ideals[j].gens
         bad = [next(b for a,b in self._poly2ideal[k] if a == j) for k in bad]
 
@@ -247,45 +252,47 @@ def _sqrt(f):
         raise ValueError('not a square')
     return f.parent(prod(a**(e//2) for (a,e) in li))
 
-def topologically_evaluate_monomial_integral(RS, polytopes, substitution, dims=None):
+def evaluate_monomial_integral(mode, RS, polytopes, substitution, dims=None):
+    # NOTE:
+    # The name is slightly misleading since the factor (1-1/q)**RS.ambient_dim
+    # is missing in the p-adic case.
+
     for P in polytopes:
         if P.ambient_dim() != RS.ambient_dim:
             raise RuntimeError('dimension mismatch')
 
-    def red(args):
-        P = args[0]
-        for i, Q in enumerate(args):
-            if P.is_empty():
-                return P
-            if not i:
-                continue
-            P = P & Q
-        return P
+    if not polytopes or any(P.is_empty() for P in polytopes):
+        raise ValueError('need a non-empty collection of non-empty polytopes')
 
-    for foo in itertools.product(*[vertex_minimiser(P) for P in polytopes]):
-        polyhedra, alphas = zip(*foo)
+    for polyhedron in inner_open_normal_fan(sum(polytopes)):
+        y = vector(polyhedron.vertices()[0])
+        alphas = [vertex_by_direction(Q, y) for Q in polytopes]
 
-        if any(P.is_empty() for P in polyhedra):
-            continue
-
-        normal_RS = RationalSet(red(polyhedra))
-        if normal_RS.is_empty():
-            continue
-
-        local_RS = RS & normal_RS
-        if local_RS.is_empty() or local_RS.dim() < RS.dim():
+        local_RS = RS & RationalSet(polyhedron)
+        if local_RS.is_empty():
             continue
 
         A = matrix(ZZ, alphas)
-        for surf in local_RS.topologise(
-                matrix(ZZ, [ vector(ZZ, substitution[0]) * A,
-                             vector(ZZ, substitution[1]) * A - vector(ZZ, A.ncols() * [1])
-                             ]).transpose(), dims=dims):
-            # degree < 0 check: good for reps but bad for Igusa-type zetas
-            # assert any(r[0] for r in surf.rays)
-            yield surf
+        Phi = matrix(ZZ, [vector(ZZ, substitution[0]) * A,
+                          vector(ZZ, substitution[1]) * A - vector(ZZ, A.ncols() * [1])]).transpose()
 
-class IgusaProcessor(TopologicalZetaProcessor):
+        if mode == 'topological':
+            if local_RS.dim() < RS.dim():
+                continue
+            for surf in local_RS.topologise(Phi, dims=dims):
+                yield surf
+        elif mode == 'p-adic':
+            with TemporaryList() as tmp_list:
+                sm = local_RS.generating_function(base_list=tmp_list)
+                for z in sm.monomial_substitution(QQ['t','q'], Phi):
+                    yield z
+        else:
+            raise ValueError('unknown mode')
+            
+topologically_evaluate_monomial_integral = functools.partial(evaluate_monomial_integral, 'topological')
+padically_evaluate_monomial_integral = functools.partial(evaluate_monomial_integral, 'p-adic', dims=None)
+
+class IgusaProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
     def __init__(self, *polynomials):
         if not polynomials:
             raise ValueError('need at least one polynomial')
@@ -347,10 +354,49 @@ class IgusaProcessor(TopologicalZetaProcessor):
                                                                  ):
                 yield SURF(scalar=chi*surf.scalar, rays=surf.rays)
 
+    def padically_evaluate_regular(self, datum):
+        if not datum.is_regular():
+            raise ValueError('need a regular datum')
+
+        q = var('q')
+        count_cap = {}
+        N = Set(range(len(datum.polynomials)))
+
+        for I in Subsets(N):
+            F = [datum.initials[i].num for i in I]
+            V = SubvarietyOfTorus(F, torus_dim=datum.ambient_dim)
+            count_cap[I] = V.count()
+
+        for I in Subsets(N):
+            cnt = sum((-1)**len(J) * count_cap[I+J] for J in Subsets(N-I))
+            if not cnt:
+                continue
+            
+            I = list(I)
+            polytopes = []
+
+            id = identity_matrix(ZZ, len(I))
+            def vectorise(k, vec):
+                w = id[I.index(k)] if k in I else vector(ZZ,len(I))
+                return vector(ZZ, list(vec) + list(w))
+
+            assert len(datum._ideal2poly[0]) == len(datum.ideals[0].gens)
+            polytopes = [Polyhedron(vertices=[ vectorise(k, datum.ideals[0].initials[m].exponents()[0]) for m,k in enumerate(datum._ideal2poly[0]) ], ambient_dim=datum.ambient_dim+len(I))]
+
+            extended_RS = datum.RS * RationalSet(StrictlyPositiveOrthant(len(I)))
+
+            foo, ring = symbolic_to_ratfun(cnt * (q-1)**len(I)/q**datum.ambient_dim, [var('t'),var('q')])
+            corr_cnt = CyclotomicRationalFunction.from_laurent_polynomial(foo, ring)
+
+            assert all(extended_RS.ambient_dim == P.ambient_dim() for P in polytopes)
+
+            for z in padically_evaluate_monomial_integral(extended_RS, polytopes, [ (1,), (0,) ]):
+                yield corr_cnt * z
+
     def __repr__(self):
         return 'Igusa processor. IDEAL: %s' % self.ideal
 
-class RepresentationProcessor(TopologicalZetaProcessor):
+class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
     def __init__(self, arg):
         try:
             self.R, self.S = list(arg)
@@ -434,6 +480,17 @@ class RepresentationProcessor(TopologicalZetaProcessor):
 
         return self.datum
 
+    # def purge_denominator(self, denom):
+    #     raise NotImplementedError
+    #     return CyclotomicRationalFunction(denom.polynomial,
+    #                                       [vector(ZZ,(0,-1 if denom.exponents[0][1] < 0 else 0))] + [ (a,b) for (a,b) in denom.exponents[1:] if a > 0 and b >= 0])
+
+    # def degree_bound_in_t(self):
+    #     return 0
+    
+    # def degree_bound_in_q(self):
+    #     return 0
+
     def topologically_evaluate(self, shuffle=False):
         return (SR(1) + TopologicalZetaProcessor.topologically_evaluate(self, shuffle=shuffle)).factor()
 
@@ -492,6 +549,55 @@ class RepresentationProcessor(TopologicalZetaProcessor):
             for surf in topologically_evaluate_monomial_integral(extended_RS, polytopes,
                                                                  self.integrand, dims=[min_dim+len(I)]):
                 yield SURF(scalar=chi*surf.scalar, rays=surf.rays)
+
+    def padically_evaluate(self, shuffle=False):
+        if self.root() is None:
+            return SR(1)
+        return (1 + (1 - SR('q')**(-1))**(-1) * LocalZetaProcessor.padically_evaluate(self, shuffle=shuffle)).factor()
+
+    def padically_evaluate_regular(self, datum):
+        if not datum.is_regular():
+            raise ValueError('need a regular datum')
+
+        q = var('q')
+        count_cap = {}
+        N = Set(range(len(datum.polynomials)))
+        
+        for I in Subsets(N):
+            F = [datum.initials[i].num for i in I]
+            V = SubvarietyOfTorus(F, torus_dim=datum.ambient_dim)
+            count_cap[I] = V.count()
+
+            # BEGIN SANITY CHECK
+            # q = var('q')
+            # u, w = V.split_off_torus()
+            # assert ((count_cap[I]/(q-1)**w.torus_dim).simplify_full())(q=1) == u.euler_characteristic()
+            # END SANITY CHECK
+
+        for I in Subsets(N):
+            cnt = sum((-1)**len(J) * count_cap[I+J] for J in Subsets(N-I))
+            if not cnt:
+                continue
+            
+            I = list(I)
+            id = identity_matrix(ZZ, len(I))
+            def vectorise(first, k, vec):
+                w = id[I.index(k)] if k in I else vector(ZZ,len(I))
+                return vector(ZZ, [first] + list(vec) + list(w))
+            
+            polytopes = []
+            for (i,j) in self.pairs:
+                vertices = [vectorise(0, k, datum.ideals[i].initials[m].exponents()[0]) for m,k in enumerate(datum._ideal2poly[i])] +\
+                           [vectorise(1, k, datum.ideals[j].initials[m].exponents()[0]) for m,k in enumerate(datum._ideal2poly[j])]
+                polytopes.append(Polyhedron(vertices=vertices, ambient_dim=1+datum.ambient_dim+len(I)))
+            extended_RS = (RationalSet(StrictlyPositiveOrthant(1)) * datum.RS *
+                           RationalSet(StrictlyPositiveOrthant(len(I))))
+
+            foo, ring = symbolic_to_ratfun(cnt * (q-1)**(1+len(I))/q**(1+datum.ambient_dim), [var('t'),var('q')])
+            corr_cnt = CyclotomicRationalFunction.from_laurent_polynomial(foo, ring)
+
+            for z in padically_evaluate_monomial_integral(extended_RS, polytopes, self.integrand):
+                yield corr_cnt * z
 
     def __repr__(self):
         if self.root() is not None:

@@ -12,7 +12,10 @@ ifeq ($(CCVERSION),)
 endif
 endif
 
-all: crunch.so
+all: crunch.so addmany.so
+
+addmany.so: addmany.pyx
+	sage -python setup.py build_ext --inplace
 
 crunch.so: crunch.c
 ifeq ($(CCVERSION),)
@@ -24,3 +27,5 @@ endif
 
 clean:
 	rm -f crunch.so
+	rm -f addmany.so
+
