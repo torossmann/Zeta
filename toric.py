@@ -472,7 +472,7 @@ class ToricDatum:
                 # If term_i and term_j are INITIAL terms, this can't happen!
                 raise RuntimeError('This reduction is not admissible')
 
-            logger.debug('New intial form of (%d) is %s.' % (j, 'undetermined' if initials[j] is None else str(initials[j])))
+            logger.debug('New initial form of (%d) is %s.' % (j, 'undetermined' if initials[j] is None else str(initials[j])))
 
         return ToricDatum(ring=self.ring, integrand=self.integrand,
                           cc=list(zip(lhs, rhs)), initials=initials,

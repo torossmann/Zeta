@@ -10,7 +10,7 @@ import itertools
 from functools import reduce
 
 from . import common
-from .util import monomial_exp, cached_simple_method, vertex_by_direction
+from .util import monomial_exp, cached_simple_method
 from . import triangulate
 
 

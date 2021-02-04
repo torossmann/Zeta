@@ -7,9 +7,7 @@ import itertools
 
 from collections import Counter
 
-from .tmplist import TemporaryList
-
-from .util import monomial_exp, monomial_log, evaluate_polynomial, unzip, split_vector, common_overring
+from .util import monomial_log, evaluate_polynomial, unzip, split_vector, common_overring
 
 from .util import create_logger
 logger = create_logger(__name__)

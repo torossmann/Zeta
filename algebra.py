@@ -11,9 +11,9 @@ from .util import normalise_poly, monomial_log, cached_simple_method, \
     basis_of_matrix_algebra, subspace_structured_basis
 
 from . import common
-import multiprocessing
 
 import itertools
+
 
 class Algebra:
     """Additively free non-associative ZZ-algebras with optional operators.
@@ -40,9 +40,12 @@ class Algebra:
                 def f(i,j):
                     if abs(A[i,j]) > self.rank:
                         raise TypeError('Matrix entries out of range')
-                    if   A[i,j] == 0: return (Integer(0) * e[0])
-                    elif A[i,j] > 0:  return (e[A[i,j]-1])
-                    elif A[i,j] < 0:  return (-e[-A[i,j]-1])
+                    if   A[i,j] == 0:
+                        return (Integer(0) * e[0])
+                    elif A[i,j] > 0:
+                        return (e[A[i,j]-1])
+                    elif A[i,j] < 0:
+                        return (-e[-A[i,j]-1])
                 self.table = [ [ f(i,j) for j in range(self.rank) ] for i in range(self.rank) ]
             elif bilinear:
                 n = A.ncols()
@@ -298,7 +301,8 @@ class Algebra:
 
         T = self.change_basis(A)
 
-        a = dims[0] ; b = a + d # [a,b) == indices of basis vectors of the commutator ideal
+        a = dims[0]
+        b = a + d # [a,b) == indices of basis vectors of the commutator ideal
 
         R = matrix(ring, [
             [ y * vector(ring, [T.table[i][j][k] for k in range(a,b)])
@@ -398,7 +402,7 @@ class Algebra:
             for row in M * matrix(R, op) * Madj:
                 insert_components(row)
 
-        if len(li) > 0:
+        if li:
             li = ideal(li).interreduced_basis()
         cc_raw = [(D,f) for f in li]
 
@@ -549,12 +553,12 @@ class Subalgebra(Algebra):
         S += '\nEmbedding:\n' + str(self.subspace.basis_matrix())
         return S
 
+
 def tensor_with_duals(L):
     if len(L.blocks) > 1:
         raise NotImplementedError
 
     n = L.rank
-    shift = n * [n]
     zero  = n * [0]
 
     def f(i,j):
@@ -568,12 +572,12 @@ def tensor_with_duals(L):
             return zero + zero
     return Algebra(table=[[f(i,j) for j in range(2*n)] for i in range(2*n)])
 
+
 def tensor_with_3duals(L):
     if len(L.blocks) > 1:
         raise NotImplementedError
 
     n = L.rank
-    shift = n * [n]
     zero  = n * [0]
 
     def f(i,j):
