@@ -346,7 +346,7 @@ class Algebra:
             return L.toric_datum(objects=objects, name=name).weight()
 
         best_weight, best_permutation = Infinity, None
-        for (arg,w) in (parallel(ncpus=common.ncpus)(weight))(iter(SymmetricGroup(self.rank))):
+        for (arg,w) in (parallel(ncpus=common.ncpus)(weight))(list(SymmetricGroup(self.rank))):
             g = arg[0][0]
             if w == 'NO DATA':
                 w = weight(g)

@@ -142,6 +142,18 @@ class IgusaDatum(ZetaDatum):
                                 all_subsets=True, all_initial_forms=False,
                                 collision_handler=lambda J: setattr(self, '_coll_idx', J))
 
+    # BEGIN HACK
+    # def is_ordered(self):
+    #     return len(self.RS.polyhedra) <= 1
+
+    # def order(self):
+    #     for P in self.RS.polyhedra:
+    #         RS = RationalSet(P)
+    #         yield IgusaDatum([ LaurentIdeal(gens=I.gens, initials=I.initials,
+    #                                         RS=RS, ring=I.ring, normalise=True)
+    #                            for I in self.ideals], depth=self._depth)
+    # END HACK
+
     def _low_level_reduce(self, j, a, b, ta, tb, strict):
         return self._replace_single_ideal(j, self.ideals[j].reduce(a, b, ta, tb, strict))
 

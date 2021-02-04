@@ -17,8 +17,8 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.2'
-__date__ = 'Mar 2015'
+__version__ = '0.2.1'
+__date__ = 'Jun 2015'
 
 import common
 import examples
