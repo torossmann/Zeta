@@ -104,6 +104,9 @@ class Algebra:
                       [ sum(v[i] * w[j] * ring(self.table[i][j][k]) for i in xrange(self.rank) for j in xrange(self.rank)) for k in xrange(self.rank) ]
                       )
 
+    def right_multiplication(self, w, ring=QQ):
+        return matrix(ring, [self.multiply(v,w) for v in identity_matrix(ring, self.rank)])
+                      
     def ideal(self, vecs, ring=QQ):
         V = ring**self.rank
         B = list(identity_matrix(QQ,self.rank))
@@ -207,7 +210,7 @@ class Algebra:
         if not A.is_invertible():
             raise TypeError('The argument must be an invertible matrix over QQ.') 
         return Algebra( table = [[ self.multiply( A[i], A[j] ) * A.inverse() for j in xrange(self.rank) ] for i in xrange(self.rank)],
-                        operators = [ A**(-1) * op * A for op in self.operators ], blocks = self.blocks )
+                        operators = [ A * op * A**(-1) for op in self.operators ], blocks = self.blocks )
 
     @cached_simple_method
     def _Lie_centre(self):

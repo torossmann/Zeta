@@ -185,8 +185,12 @@ class SubvarietyOfTorus:
                         for ti in terms_of_polynomial(F[i]):
                             for tj in terms_of_polynomial(F[j]):
                                 g = gcd(ti,tj)
-                                if g == 1:
-                                    continue
+
+                                # BEGIN HACK
+                                #if g == 1:
+                                #    continue
+                                # END HACK
+
                                 r = (tj//g) * F[i] - (ti//g) * F[j]
                                 r = squarefree_part(r)
 

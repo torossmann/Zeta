@@ -17,8 +17,8 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.3'
-__date__ = 'Feb 2016'
+__version__ = '0.3.1'
+__date__ = 'Jul 2016'
 
 # print 'Loading...'
 

@@ -1,6 +1,16 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
+<style type="text/css">
+h1 { font-family: sans-serif; font-size: 200%; }
+h2 { font-family: sans-serif; font-size: 140%; }
+h3 { font-family: sans-serif; font-size: 105%; }
+h4 { font-family: serif; font-size: 100%; }
+a:link { color: darkgreen; }
+a:visited { color: darkslategray; }
+a:hover { color: red; }
+body { margin: 18px 16px 8px 16px; padding: 0px; }
+</style>
 <title>Zeta &mdash; computing zeta functions of groups, algebras,
 and modules</title>
 <meta http-equiv="content-type" content=
@@ -32,9 +42,9 @@ Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a
 Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
 ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 
-                                                                  Version 0.3
+                                                                Version 0.3.1
                              by
-                                 Tobias Rossmann
+                                 <a href="http://www.math.uni-bielefeld.de/~rossmann">Tobias Rossmann</a>
   
 </pre>
 <hr>
@@ -106,7 +116,7 @@ Theory&rdquo; (<a href="http://www.computeralgebra.de/">SPP
 <!--====================================================================-->
 <p>This software requires a recent version
   of <a href="http://sagemath.org/">Sage</a>.
-  Zeta 0.3 has been confirmed to work with Sage 6.9, 6.10, and 7.0
+  Zeta 0.3.1 has been confirmed to work with Sage 7.0
   on 64-bit Linux (x86_64) systems; other platforms are untested.</p>
 <!--====================================================================-->
 <h2 id="installation">2.2 Installation</h2>
@@ -115,7 +125,7 @@ Theory&rdquo; (<a href="http://www.computeralgebra.de/">SPP
 <p>
 On a 64-bit Linux (x86_64) system, the easiest way to
 install Zeta is to download the 
-<a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3-x86_64.tar.bz2">
+<a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1-x86_64.tar.bz2">
 binary distribution</a> and extract it into some directory,
 <code>$DIR</code> say.
 This will create a subdirectory
@@ -143,7 +153,7 @@ shell. Alternatively, for a temporary solution, after executing</p>
 <h3>Option 2: compile from sources</h3>
 <p>As an alternative to the binary distribution, you may also download the
 <a href=
-"http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.tar.bz2">
+"http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">
 sources</a> of Zeta;
 you will then have to run <code>make</code> from within <code>$DIR/Zeta</code>.</p>
 
@@ -174,11 +184,23 @@ programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~la
     <table border="1" summary="Releases">
       <tr> <th>File</th> <th>Size</th> <th>Released</th> </tr>
       <tr>
+      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1-x86_64.tar.bz2">Zeta-0.3.1-x86_64.tar.bz2</a>
+      (binary distribution)</td>
+      <td>3.7M</td>
+        <td> 26/07/2016 </td>
+	</tr>
+      <tr>
+      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">Zeta-0.3.1.tar.bz2</a>
+      </td>
+      <td>108K</td>
+        <td> 26/07/2016 </td>
+	</tr>
+      <!--<tr>
       <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3-x86_64.tar.bz2">Zeta-0.3-x86_64.tar.bz2</a>
       (binary distribution)</td>
       <td>3.7M</td>
         <td> 02/02/2016 </td>
-	</tr>
+	</tr>-->
       <tr>
       <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.tar.bz2">Zeta-0.3.tar.bz2</a>
       </td>
@@ -793,6 +815,6 @@ Germany<br>
 <br>
 tobias.rossmann (at) googlemail.com</blockquote>
 <hr>
-<small>last modified: Feb 02, 2016</small>
+<small>last modified: July 26, 2016</small>
 </body>
 </html>

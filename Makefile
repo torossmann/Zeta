@@ -27,5 +27,4 @@ endif
 
 clean:
 	rm -f crunch.so
-	rm -f addmany.so
-
+	rm -f addmany.so addmany.c

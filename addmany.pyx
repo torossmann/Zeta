@@ -8,7 +8,7 @@ import itertools
 import random
 import struct
 
-from sage.all import Integer, Rational
+from sage.all import Integer, Rational, FractionField
 
 from tmplist import DiskList
 from collections import Counter
@@ -52,7 +52,7 @@ cdef class HashAdder:
     def __contains__(HashAdder self, key):
         return key in self.D
 
-    def add(HashAdder self, value, key=None, simple=False):
+    cdef add(HashAdder self, value, key=None, simple=False):
         if key is None:
             key = self.func(value)
 
@@ -63,7 +63,7 @@ cdef class HashAdder:
             self.D[key] += value
             self.simple[key] = False
 
-    def addmany(HashAdder self, iterable):
+    cdef addmany(HashAdder self, iterable):
         for value in iterable:
             self.add(value)
 
@@ -97,17 +97,17 @@ cdef class HashAdder:
                     done = False
                     break
 
-    def values(HashAdder self):
+    cdef values(HashAdder self):
         return self.D.itervalues()
 
     def keys(HashAdder self):
         return self.D.iterkeys()
 
-    def items(HashAdder self):
+    cdef items(HashAdder self):
         return self.D.iteritems()
 
     def __iter__(HashAdder self):
-        return self.keys()
+        return self.D.iterkeys()
 
 # A term a * x^e[0] * y^e[1] for a = n/d (n > 0) is stored using exactly 36
 # bytes as follows:
@@ -147,7 +147,7 @@ cdef class Rational256:
     def dumps(Rational256 self):
         return struct.pack('=QQQQ', self.n_lo, self.n_hi, self.d_lo, self.d_hi)
 
-    def loads(Rational256 self, s):
+    def loads(Rational256 self, str s):
         self.n_lo, self.n_hi, self.d_lo, self.d_hi = struct.unpack('=QQQQ', s)
 
     def __nonero__(Rational256 self):
@@ -369,7 +369,7 @@ def _addmany_numerator(filenames, denominator, *args):
         cdef int i, j, pid
 
         R = denominator.ring
-        K = sage.all.FractionField(R)
+        K = FractionField(R)
         res = DictPolynomial()
 
         if not common.save_memory:
@@ -389,7 +389,9 @@ def _addmany_numerator(filenames, denominator, *args):
         for i in xrange(0, len(indices), BUCKET_SIZE):
             pid = os.fork()
             if not pid:
+                import sage.misc.misc; reload(sage.misc.misc)
                 sage.interfaces.quit.invalidate_all()
+
                 try:
                     try:
                         os.remove(os.path.join(tmpdir, 'fun%d' % k))

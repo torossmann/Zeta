@@ -178,6 +178,10 @@ class SMURF:
     def __str__(self):
         return 'Sum of %d cyclotomic rational functions over %s' % (len(self.summands), self.ring.gens())
 
+    def evaluate(self, variables=None):
+        # This is included  for debugging purposes!
+        return sum(SR(s.evaluate(variables)) for s in self.summands)
+
     def monomial_substitution(self, new_ring, Phi, base_list=None, taylor_processor=None):
         """
         Perform monomial substitutions which are valid for the sum of 'self'
