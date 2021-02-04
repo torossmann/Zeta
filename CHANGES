@@ -1,4 +1,19 @@
 ************************************************************************
+0.3.2
+************************************************************************
+
+* Added support for "ask zeta functions", including conjugacy class
+  zeta functions of unipotent groups.
+
+* Removed some duplicate algebras corresponding to the mistakes in
+  Seeleys's tables listed in Magnin's paper.
+
+  NOTE: The algebra "1,3,7 B" was already given in the corrected form in
+  previous versions of Zeta.
+
+* Added maple.cpp from the patched version of LattE.
+
+************************************************************************
 0.3.1
 ************************************************************************
 

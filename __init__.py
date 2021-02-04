@@ -1,7 +1,7 @@
 #
 # Zeta.
 #
-# Copyright 2014, 2015, 2016 Tobias Rossmann.
+# Copyright 2014, 2015, 2016, 2017 Tobias Rossmann.
 #
 # This package is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -17,10 +17,10 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.3.1'
-__date__ = 'Jul 2016'
+__version__ = '0.3.2'
+__date__ = 'April 2017'
 
-# print 'Loading...'
+print 'Loading...'
 
 import common
 
@@ -29,6 +29,8 @@ import addmany
 import examples
 from subobjects import SubobjectZetaProcessor
 from reps import RepresentationProcessor
+
+from ask import AskProcessor
 
 from algebra import Algebra
 from abstract import ReductionError
@@ -40,7 +42,8 @@ import surf, smurf
 import abstract
 import subobjects
 import reps
-
+import ask
+import util
 import cycrat
 import triangulate
 
@@ -48,7 +51,9 @@ from laurent import LaurentPolynomial
 
 from subobjects import Strategy
 
-from sage.all import Integer, Infinity, var
+from sage.all import Infinity, var
+import sage
+
 from functools import partial
 
 common.VERSION = __version__
@@ -56,6 +61,16 @@ common.VERSION = __version__
 logger = create_logger(__name__)
 
 from reps import IgusaProcessor
+
+# The following is supposed to detect a bug which is present (at least)
+# in version 7.5.1 and 7.6 of Sage.
+__SERIES_BUG = False
+def __check_sage_bugs():
+    x,y,z = var('x y z')
+    if y.series(x) != (z.series(x))(z=y):
+        __SERIES_BUG = True
+
+__check_sage_bugs()
 
 class Profile:
     SAVE_MEMORY = 1
@@ -92,12 +107,15 @@ def lookup(entry=None, what=None, type='topological'):
 
 def zeta_function(type, L, objects=None, optimise_basis=False,
                   ncpus=None, alt_ncpus=None, strategy=None, profile=None, verbose=False,
-                  optlevel=None, addmany_dispatcher=None, debug=None):
+                  optlevel=None, addmany_dispatcher=None, mode=None, debug=None):
     if type not in ['p-adic', 'topological']:
         raise ValueError('Unknown type of zeta function')
 
-    if type == 'p-adic' and common.count is None:
-        raise RuntimeError('LattE/count is required in order to compute p-adic zeta functions')
+    if type == 'p-adic':
+        if common.count is None:
+            raise RuntimeError('LattE/count is required in order to compute p-adic zeta functions')
+        elif __SERIES_BUG:
+            raise RuntimeError('power series expansions in this version of Sage cannot be trusted')
 
     # Multiprocessing.
     if ncpus is None:
@@ -144,7 +162,8 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
                      (torus.logger, INFO), (abstract.logger, INFO),
                      (cycrat.logger, INFO), (triangulate.logger, INFO),
                      (reps.logger, INFO), (subobjects.logger, INFO),
-                     (addmany.logger, INFO) ]
+                     (ask.logger, INFO),
+                     (addmany.logger, INFO), ]
         oldlevels = []
 
         for m,level in loglevels:
@@ -158,14 +177,14 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
         _ = L.exponents()
     except:
         try:
-            if not isinstance(L, basestring):
+            if not isinstance(L, basestring) and not isinstance(L,sage.matrix.matrix_dense.Matrix_dense) and objects != 'orbits':
                 polynomials = list(L)
         except:
             pass
     else:
         polynomials = [L]
-    
-    if (polynomials is None) and not isinstance(L, algebra.Algebra):
+
+    if (polynomials is None) and not isinstance(L, algebra.Algebra) and not isinstance(L,sage.matrix.matrix_dense.Matrix_dense) and objects != 'orbits':
         L = lookup(L)
 
     if polynomials is not None:
@@ -174,6 +193,15 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
         proc = SubobjectZetaProcessor(L, objects, strategy=strategy)
     elif objects == 'reps':
         proc = RepresentationProcessor(L)
+    elif objects == 'ask':
+        proc = AskProcessor(L, mode=mode)
+    elif objects == 'orbits':
+        # NOTE: we don't currently check if L really spans a matrix Lie algebra
+        proc = AskProcessor(util.matlist_to_mat(util.basis_of_matrix_algebra(L, product='Lie')), mode=mode)
+    elif objects == 'cc':
+        if not L.is_Lie() and not L.is_nilpotent():
+            raise ValueError('need a nilpotent Lie algebra in order to enumerate conjugacy classes')
+        proc = AskProcessor(util.matlist_to_mat(L._adjoint_representation()), mode=mode)
     else:
         raise ValueError('unknown objects [%s]' % objects)
 
@@ -234,8 +262,12 @@ def check(name, objects='subalgebras', type='p-adic', **kwargs):
     W = lookup(name, objects, type)
     if W is None:
         raise RuntimeError('zeta function not contained in database')
+
     Z = do(type, L, objects, **kwargs)
+   
     if Z != W:
+        print 'Computed: ', Z
+        print 'Database: ', W
         raise RuntimeError('computed zeta function of %s differs from entry in the database' % name)
 
     print
@@ -269,8 +301,15 @@ if not common.normaliz:
 if not common.libcrunch:
     logger.warn('The C extension could not be loaded. Computations of topological zeta functions will use the slower Python implementation.')
 if not common.count:
-    logger.warn('LattE/count not found. Computations of p-adic zeta functions will be unavailable.')
+    logger.warn('LattE/count not found. Computations of p-adic zeta functions are unavailable.')
+    
+if __SERIES_BUG:
+    logger.critical(
+            """This version of Sage may compute incorrect symbolic power series
+expansions. Computations of p-adic zeta functions are therefore
+unavailable. Try using a different version of Sage such as 7.4.""")
 
+    
 def banner():
     return """
 ZZZZZZZZZZZZZZZZZZZ                           tttt                           
@@ -297,4 +336,4 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 """ % ('{:>77}'.format('VERSION ' + __version__),
        '{:>77}'.format('Released: ' + __date__))
 
-# print banner()
+print banner()

@@ -42,7 +42,7 @@ Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a
 Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
 ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 
-                                                                Version 0.3.1
+                                                                Version 0.3.2
                              by
                                  <a href="http://www.math.uni-bielefeld.de/~rossmann">Tobias Rossmann</a>
   
@@ -65,6 +65,8 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <li><a href="#pad">Computing local zeta functions</a></li>
 <li><a href="#igusa">Computing Igusa-type zeta functions</a></li>
 <li><a href="#modules">Modules and algebras with operators</a></li>
+<li><a href="#average">Average sizes of kernels</a></li>
+<li><a href="#conjugacy">Conjugacy class zeta functions</a></li>
 </ol>
 </li>
 <li><a href="#db">The built-in database of examples</a>
@@ -93,21 +95,26 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <!--====================================================================-->
 <p>Zeta provides methods for computing local and topological zeta functions
 arising from the enumeration of subalgebras, ideals, submodules,
-and representations of suitable algebraic structures.
+and representations of suitable algebraic structures as well as some
+other types of zeta functions.
 For theoretical background and descriptions of the 
 methods used, see [<a href="#topzeta">1</a>,<a href=
-"#topzeta2">2</a>,<a href="#unipotent">3</a>,<a href="#padzeta">4</a>].
+"#topzeta2">2</a>,<a href="#unipotent">3</a>,<a href="#padzeta">4</a>,<a href="#ask">5</a>].
 Zeta is distributed as a <a href="http://www.python.org">Python</a>-package for the computer algebra
 system <a href="http://sagemath.org/">Sage</a>.
 In addition to <a href="https://www.singular.uni-kl.de">Singular</a> and other
   software included with Sage,
 Zeta also relies on <a href="https://www.math.ucdavis.edu/~latte/software.php">LattE integrale</a>
 and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz">Normaliz</a>.</p>
-<p>This work is supported by the <a href=
-"http://www.dfg.de/">DFG</a> Priority Programme &ldquo;Algorithmic
-and Experimental Methods in Algebra, Geometry and Number
-Theory&rdquo; (<a href="http://www.computeralgebra.de/">SPP
-1489</a>).</p>
+
+<p>This work is supported by the
+  <a href="https://www.humboldt-foundation.de">Alexander von
+    Humboldt-Foundation</a>.
+  From 2013&ndash;2016, the development of Zeta was supported by the
+  <a href="http://www.dfg.de">DFG</a> Priority Programme
+  &ldquo;<a href="https://spp.computeralgebra.de">Algorithmic and
+  Experimental Methods in Algebra, Geometry and Number Theory</a>&rdquo;. 
+</p>
 <!--====================================================================-->
 <h1 id="download">2. Download and setup</h1>
 <!--====================================================================-->
@@ -116,8 +123,9 @@ Theory&rdquo; (<a href="http://www.computeralgebra.de/">SPP
 <!--====================================================================-->
 <p>This software requires a recent version
   of <a href="http://sagemath.org/">Sage</a>.
-  Zeta 0.3.1 has been confirmed to work with Sage 7.0
-  on 64-bit Linux (x86_64) systems; other platforms are untested.</p>
+  Zeta 0.3.2 has been developed for Sage 7.4
+  on 64-bit Linux (x86_64) systems; other platforms and versions of
+  Sage may or may not work as expected.</p>
 <!--====================================================================-->
 <h2 id="installation">2.2 Installation</h2>
 <!--====================================================================-->
@@ -125,7 +133,7 @@ Theory&rdquo; (<a href="http://www.computeralgebra.de/">SPP
 <p>
 On a 64-bit Linux (x86_64) system, the easiest way to
 install Zeta is to download the 
-<a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1-x86_64.tar.bz2">
+<a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2-x86_64.tar.bz2">
 binary distribution</a> and extract it into some directory,
 <code>$DIR</code> say.
 This will create a subdirectory
@@ -153,7 +161,7 @@ shell. Alternatively, for a temporary solution, after executing</p>
 <h3>Option 2: compile from sources</h3>
 <p>As an alternative to the binary distribution, you may also download the
 <a href=
-"http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">
+"http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2.tar.bz2">
 sources</a> of Zeta;
 you will then have to run <code>make</code> from within <code>$DIR/Zeta</code>.</p>
 
@@ -184,11 +192,23 @@ programs <code>count</code> (a part of <a href="https://www.math.ucdavis.edu/~la
     <table border="1" summary="Releases">
       <tr> <th>File</th> <th>Size</th> <th>Released</th> </tr>
       <tr>
-      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1-x86_64.tar.bz2">Zeta-0.3.1-x86_64.tar.bz2</a>
+      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2-x86_64.tar.bz2">Zeta-0.3.2-x86_64.tar.bz2</a>
       (binary distribution)</td>
       <td>3.7M</td>
-        <td> 26/07/2016 </td>
+        <td> 09/04/2017</td>
 	</tr>
+      <tr>
+      <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.2.tar.bz2">Zeta-0.3.2.tar.bz2</a>
+      </td>
+      <td>116K</td>
+        <td> 09/04/2017</td>
+	</tr>
+      <!-- <tr> -->
+      <!-- <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1-x86_64.tar.bz2">Zeta-0.3.1-x86_64.tar.bz2</a> -->
+      <!-- (binary distribution)</td> -->
+      <!-- <td>3.7M</td> -->
+      <!--   <td> 26/07/2016 </td> -->
+      <!-- 	</tr> -->
       <tr>
       <td> <a href="http://www.math.uni-bielefeld.de/~rossmann/Zeta/Zeta-0.3.1.tar.bz2">Zeta-0.3.1.tar.bz2</a>
       </td>
@@ -516,6 +536,92 @@ subalgebra and submodule zeta functions.</p>
 
 
 <!--====================================================================-->
+<h2 id="average">3.6. Average sizes of kernels</h2>
+<!--====================================================================-->
+
+<p>
+  Subject to the same restrictions as above, Zeta supports the
+  computation of the (local) &ldquo;ask zeta functions&rdquo; defined and studied in [<a href="#ask">5</a>].
+</p>
+
+<p>
+Let $\mathfrak{O}$ be a compact discrete valuation ring
+with maximal ideal $\mathfrak{P}$.
+Let $M \subset \mathrm{M}_{d\times e}(\mathfrak{O})$ be a submodule.
+Let $M_n \subset \mathrm{M}_{d\times e}(\mathfrak{O}/\mathfrak{P}^n)$
+denote the image of $M$ under the natural map
+$\mathrm{M}_{d\times e}(\mathfrak{O}) \to \mathrm{M}_{d\times e}(\mathfrak{O}/\mathfrak{P}^n)$.
+The <b>ask zeta function</b>  of $M$ is
+\[
+\mathsf{Z}_M(t) = \sum_{n=0}^\infty
+\mathrm{ask}(M_n) t^n,
+\]
+where $\mathrm{ask}(M_n)$ denotes the average size of the kernels of the
+elements of $M_n$ acting by right-multiplication on $(\mathfrak{O}/\mathfrak{P}^n)^d$.
+</p>
+
+<p>
+  Zeta can be used to attempt to compute generic local ask zeta
+  functions in the following global setting.
+  Let $M \subset \mathrm{M}_{d\times e}(\mathbf{Z})$ be a submodule of
+  rank $\ell$. Let $A$ be an integral $d \times e$ matrix of linear
+  forms in $\ell$ variables such that $M$ is precisely the module of
+  specialisations of $A$. Then <code>Zeta.local_zeta_function(A,
+  'ask')</code> attempts to compute $\mathsf{Z}_{M \otimes
+  \mathfrak{O}_K}(t)$
+  for almost all primes $p$ and all finite extensions $K/\mathbf{Q}_p$
+  in the same sense as in <a href="pad">&sect;3.3</a>.
+  The optional keyword parameter <code>mode</code> determines whether
+  Zeta attempts to compute ask zeta functions
+  using the functions $\mathrm{K}_M$ (<code>mode='K'</code>)
+  or $\mathrm{O}_M$ (<code>mode='O'</code>) from [<a href="ask">5</a>, &sect;4],
+  respectively; the default is <code>mode='O'</code>.
+  </p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<p>We compute the generic local ask zeta functions associated
+  with $\mathrm{M}_{2\times 3}(\mathbf{Z})$.
+</p>
+<hr>
+<pre>
+<code>sage: R.&lt;a,b,c,d,e,f&gt; = QQ[]
+sage: A = matrix([[a,b,c],[d,e,f]])
+sage: Zeta.local_zeta_function(A, 'ask')
+-(q^3 - t)/((q - t)*q^2*(t - 1))
+</code></pre>
+<hr>
+
+<!--====================================================================-->
+<h2 id="conjugacy">3.7. Conjugacy class zeta functions</h2>
+<!--====================================================================-->
+
+<p>
+Let $L$ be a nilpotent Lie algebra constructed as
+in <a href="#algebras">&sect;3.1</a>.
+Then <code>Zeta.local_zeta_function(L, 'cc')</code> attempts to
+compute the generic local conjugacy class zeta functions associated
+with the unipotent algebraic group corresponding to $L \otimes
+\mathbf{Q}$; see [<a href="#ask">5</a>, &sect;7.5].
+The optional keyword parameter <code>mode</code> has the same
+interpretation as in <a href="#average">&sect;3.6</a>.</p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<p>We compute the generic local conjugacy class zeta functions of
+  the Heisenberg group.
+</p>
+<hr>
+<pre>
+<code>sage: L = Zeta.Algebra([[(0, 0, 0), (0, 0, 1), (0, 0, 0)], [(0, 0,-1), (0, 0, 0), (0, 0, 0)], [(0, 0, 0), (0, 0, 0), (0, 0, 0)]])
+sage: Zeta.local_zeta_function(L, 'cc')
+-(t - 1)/((q^2*t - 1)*(q*t - 1))
+</code></pre>
+<hr>
+
+<!--====================================================================-->
 <h1 id="db">4. The built-in database of examples</h1>
 <!--====================================================================-->
 <!--====================================================================-->
@@ -786,10 +892,13 @@ J.&nbsp;Algebra 448 (2016), 210&ndash;237.
 <p><a name="padzeta" id="padzeta">[4]</a> T. Rossmann.
 <i>Computing local zeta functions of groups, algebras, and modules</i>.
 (<a href="http://www.math.uni-bielefeld.de/~rossmann/files/padzeta.pdf">preprint</a>)</p>
+<p><a name="ask" id="ask">[5]</a> T. Rossmann.
+<i>The average size of the kernel of a matrix and orbits of linear groups</i>.
+(<a href="http://www.math.uni-bielefeld.de/~rossmann/files/ask.pdf">preprint</a>)</p>
 <!--====================================================================-->
 <h1 id="license">6. License</h1>
 <!--====================================================================-->
-<p>Copyright &copy; 2014, 2015, 2016 Tobias Rossmann.</p>
+<p>Copyright &copy; 2014, 2015, 2016, 2017 Tobias Rossmann.</p>
 <p>Zeta is free software: you can redistribute it and/or modify it
 under the terms of the <a href=
 "http://www.gnu.org/copyleft/gpl.html">GNU General Public
@@ -807,14 +916,14 @@ License along with Zeta. If not, see <a href=
 <h1 id="contact">7. Contact</h1>
 <!--====================================================================-->
 <blockquote>Tobias Rossmann<br>
-Fakult&auml;t f&uuml;r Mathematik<br>
-Universit&auml;t Bielefeld<br>
-Postfach 100131<br>
-D-33501 Bielefeld<br>
-Germany<br>
+Department of Mathematics<br>
+University of Auckland<br>
+Private Bag 92019<br>
+Auckland<br>
+New Zealand<br>
 <br>
 tobias.rossmann (at) googlemail.com</blockquote>
 <hr>
-<small>last modified: July 26, 2016</small>
+<small>last modified: April 9, 2017</small>
 </body>
 </html>

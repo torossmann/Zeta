@@ -317,3 +317,57 @@ def augmented_env(filename):
     env = os.environ.copy()
     env['PATH'] = os.path.dirname(filename) + os.path.pathsep + env.get('PATH','')
     return env
+
+def evaluate_matrix(A, y, ring=None):
+    if ring is None:
+        ring = y[0].parent()
+    return matrix(ring, [[entry(list(y)) for entry in rows] for rows in A])
+    
+def basis_of_matrix_algebra(gens, product=None):
+    # Given a list of rational square matrices, compute
+    # a basis of the rational matrix algebra they generate.
+    
+    if (product is None) or (product == 'zero'):
+        mult = lambda a,b: 0*a
+    elif product == 'associative':
+        mult = lambda a,b: a*b
+    elif product == 'Lie':
+        mult = lambda a,b: a*b - b*a
+    else:
+        mult = product
+
+    if not gens:
+        return []
+
+    n = gens[0].nrows()
+    V = QQ**(n**2)
+    U = V.subspace([g.list() for g in gens])
+
+    while True:
+        W = U
+        for b in U.basis():
+            for c in U.basis():
+                v = vector(mult(Matrix(QQ, n, n, list(b)),
+                                Matrix(QQ, n, n, list(c))).list())
+                if v not in U:
+                    W = W + V.subspace([v])
+        if W == U:
+            break
+        else:
+            U = W
+
+    def normalise(w):
+        c = lcm([a.denominator() for a in w])
+        return [ZZ(c*a) for a in w]
+    return [ Matrix(QQ, n, n, normalise(list(b))) for b in U.basis() ]
+
+def matlist_to_mat(mats, n=None):
+    if not mats and n is None:
+        raise ValueError('cannot guess size of matrices')
+    R = PolynomialRing(QQ, 'y', len(mats))
+    if not mats:
+        return matrix(R, n, n)
+    return matrix(R, sum(R.gen(i) * a for i,a in enumerate(mats)))
+
+def mat_to_matlist(A):
+    return [matrix(QQ, [[a(list(e)) for a in rows] for rows in A]) for e in identity_matrix(QQ, A.base_ring().ngens())]

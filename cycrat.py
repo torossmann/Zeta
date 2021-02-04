@@ -160,7 +160,7 @@ class CyclotomicRationalFunction:
 
         try:
             g = gcd(f.monomials())
-        except AttributeError:
+        except (AttributeError, NotImplementedError):
             # This doesn't currently work for polynomials over functions fields.
             pass
         else:

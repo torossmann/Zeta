@@ -82,13 +82,13 @@ def taylor_processor_factored(new_ring, Phi, scalar, alpha, I, omega):
     ell = len(I)
     def f(i):
         if i == 0:
-            return scalar * y[0] * exp(tau * omega[0])
+            return QQ(scalar) * y[0] * exp(tau * omega[0])
         elif i in I:
             return tau/(1 - exp(tau * omega[i]))
         else:
             return 1/(1 - y[i] * exp(tau * omega[i]))
 
-    H = [f(i).series(tau, ell+1).truncate() for i in xrange(k+1)]
+    H = [f(i).series(tau, ell+1).truncate().collect(tau) for i in xrange(k+1)]
 
     for i in xrange(k+1):
         H[i] = [H[i].coefficient(tau, j) for j in xrange(ell+1)]
@@ -179,7 +179,7 @@ class SMURF:
         return 'Sum of %d cyclotomic rational functions over %s' % (len(self.summands), self.ring.gens())
 
     def evaluate(self, variables=None):
-        # This is included  for debugging purposes!
+        # This is included for debugging purposes!
         return sum(SR(s.evaluate(variables)) for s in self.summands)
 
     def monomial_substitution(self, new_ring, Phi, base_list=None, taylor_processor=None):

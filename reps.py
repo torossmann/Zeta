@@ -555,10 +555,14 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
             return SR(1)
         return (1 + (1 - SR('q')**(-1))**(-1) * LocalZetaProcessor.padically_evaluate(self, shuffle=shuffle)).factor()
 
-    def padically_evaluate_regular(self, datum):
+    def padically_evaluate_regular(self, datum, extra_RS=None):
         if not datum.is_regular():
             raise ValueError('need a regular datum')
 
+        # The extra variable's valuation is in extra_RS.
+        if extra_RS is None:
+            extra_RS = RationalSet(StrictlyPositiveOrthant(1))
+            
         q = var('q')
         count_cap = {}
         N = Set(range(len(datum.polynomials)))
@@ -590,8 +594,8 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
                 vertices = [vectorise(0, k, datum.ideals[i].initials[m].exponents()[0]) for m,k in enumerate(datum._ideal2poly[i])] +\
                            [vectorise(1, k, datum.ideals[j].initials[m].exponents()[0]) for m,k in enumerate(datum._ideal2poly[j])]
                 polytopes.append(Polyhedron(vertices=vertices, ambient_dim=1+datum.ambient_dim+len(I)))
-            extended_RS = (RationalSet(StrictlyPositiveOrthant(1)) * datum.RS *
-                           RationalSet(StrictlyPositiveOrthant(len(I))))
+                
+            extended_RS = extra_RS * datum.RS * RationalSet(StrictlyPositiveOrthant(len(I)))
 
             foo, ring = symbolic_to_ratfun(cnt * (q-1)**(1+len(I))/q**(1+datum.ambient_dim), [var('t'),var('q')])
             corr_cnt = CyclotomicRationalFunction.from_laurent_polynomial(foo, ring)

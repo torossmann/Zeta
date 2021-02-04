@@ -7,7 +7,7 @@ from sage.all import *
 from convex import PositiveOrthant
 from toric import ToricDatum
 from util import normalise_poly, monomial_log, cached_simple_method, \
-    upper_triangular_matrix, is_block_diagonal_matrix
+    upper_triangular_matrix, is_block_diagonal_matrix, basis_of_matrix_algebra
 
 import common
 import multiprocessing
@@ -247,6 +247,14 @@ class Algebra:
         li = list(itertools.chain(C.basis(), B.basis(), M.basis(), A.basis()))
         return matrix(QQ, [v.denominator()*v for v in li]), (dim(C), dim(B), dim(M), dim(A))
 
+    @cached_simple_method
+    def _adjoint_representation(self):
+        # Construct a basis of the image of `self' under its adjoint
+        # representation.
+        assert self.is_anticommutative()
+        return basis_of_matrix_algebra([self.right_multiplication(e) for e in identity_matrix(QQ, self.rank)],
+                                       product='zero')
+        
     @cached_simple_method
     def _commutator_matrices(self):
         if len(self.blocks) > 1:

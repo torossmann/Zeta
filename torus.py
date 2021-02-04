@@ -259,7 +259,14 @@ class SubvarietyOfTorus:
         euler = level < 0 # == only compute euler characteristic 
         q = int(1) if euler else var('q')
 
+        logger.debug('Initial polynomials: %s' % self.polynomials)
+        
         V,W = self.simplify_defining_equations().split_off_torus()
+       
+        if W.torus_dim > 0:
+            logger.debug('Split off torus factor of dimension %d' % W.torus_dim)
+
+        logger.debug('Simplified polynomials: %s' % self.polynomials)
 
         if W.torus_dim > 0:
             return 0 if euler else V._count_general(level) * (q-1)**W.torus_dim
@@ -297,11 +304,15 @@ class SubvarietyOfTorus:
             U = SubvarietyOfTorus(li, V.torus_dim-1)
             W = SubvarietyOfTorus([S(normalise_laurent_polynomial(g))] + li)
             try:
-                return U._count_general(level) - W._count_general(level)
+                res = U._count_general(level) - W._count_general(level)
             except CountException:
                 pass
             else:
                 logger.debug('Successfully decomposed variety.')
+                logger.debug('Solvable condition: (%d, %s, %s)' % (i,x,g))
+                logger.debug('U = %s' % U.polynomials)
+                logger.debug('W = %s' % W.polynomials)
+                return res
 
         logger.debug('Trying to isolate a variable...')
         for (i,x,u,v) in V._isolated_variables():
@@ -321,11 +332,17 @@ class SubvarietyOfTorus:
             Z = SubvarietyOfTorus([S(u), S(v)] + li, V.torus_dim-1)
 
             try:
-                return U._count_general(level) - Wu._count_general(level) - Wv._count_general(level) + q * Z._count_general(level)
+                res = U._count_general(level) - Wu._count_general(level) - Wv._count_general(level) + q * Z._count_general(level)
             except CountException:
                 pass
             else:
                 logger.debug('Succesfully isolated a variable.')
+                logger.debug('Isolated variable data: (%d, %s, %s, %s)' % (i,x,u,v))
+                logger.debug('U = %s' % U.polynomials)
+                logger.debug('Wu = %s' % Wu.polynomials)
+                logger.debug('Wv = %s' % Wv.polynomials)
+                logger.debug('Z = %s' % Z.polynomials)
+                return res
 
         logger.debug('SubvarietyOfTorus._count_general failed. Defining polynomials: %s' % self.polynomials)
 
