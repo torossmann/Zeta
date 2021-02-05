@@ -73,8 +73,10 @@ class LaurentPolynomial:
     def factor(self):
         return Factorization([(LaurentPolynomial(g),e) for (g,e) in self.f.factor()])
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.f)
+
+    __nonzero__ = __bool__
 
     def __add__(self, other):
         return LaurentPolynomial(self.f + other.f)

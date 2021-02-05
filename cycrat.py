@@ -56,8 +56,10 @@ class CyclotomicRationalFunction:
                                           self._known_to_be_normalised,
                                           self._known_to_be_reduced)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.polynomial)
+
+    __nonzero__ = __bool__
 
     def degree(self, i=0):
         if not self.polynomial:
