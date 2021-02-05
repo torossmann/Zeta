@@ -89,18 +89,6 @@ def initial_form_by_direction(f, y):
     w = min(weights)
     return sum(coeff[k] * mon[k] for k in range(len(mon)) if weights[k] == w)
 
-
-def vertex_by_direction(polytope, y):
-    """Return one(!) vertex on the face of 'polytope' defined by
-    minimising 'y'.
-    """
-    if polytope.is_empty():
-        raise ValueError('need a non-empty polytope')
-    vertices = polytope.vertices_matrix().transpose()
-    w = min(x * y for x in vertices)
-    return next(x for x in vertices if x * y == w)
-
-
 def is_subpolynomial(f, a):
     """Test if `a' is a sum of terms of the polynomial `f'.
     """
