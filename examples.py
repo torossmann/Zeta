@@ -6342,7 +6342,6 @@ for objs, D in _padic_raw.items():
 
 def _essval_at_infinity(Z):
     R = QQ['s']
-    s = R.gens()[0]
     K = FractionField(R)
     return (K(Z).numerator().leading_coefficient()/
             K(Z).denominator().leading_coefficient())

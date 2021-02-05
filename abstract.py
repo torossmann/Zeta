@@ -1,3 +1,5 @@
+import os
+
 from sage.all import *
 
 from abc import ABCMeta, abstractmethod
@@ -6,7 +8,7 @@ import random
 import itertools
 
 from .tmplist import TemporaryList, DiskList
-from .util import TemporaryDirectory, readable_filesize
+from .util import TemporaryDirectory
 from . import addmany
 from . import surf
 from . import common
@@ -18,6 +20,7 @@ logger = create_logger(__name__)
 
 class ReductionError(Exception):
     pass
+
 
 class ZetaDatum:
     __metaclass__ = ABCMeta
