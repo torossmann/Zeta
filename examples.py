@@ -1,4 +1,5 @@
-from sage.all import *
+from sage.all import (Integer, SR, QQ, var, Infinity, preparse, factorial,
+                      diagonal_matrix, ComplexField, FractionField)
 from .util import E
 from collections import namedtuple
 from .algebra import Algebra, tensor_with_duals
@@ -6382,7 +6383,7 @@ def _topzeta_invariants(Z, objects=None):
     roots = [a for a,_ in Z.numerator(s).roots(s,ring=ComplexField(PREC))]
     roots.sort(key=lambda z:z.real())
 
-    poles = [a for a,_ in Z.denominator(s).roots(s,ring=RationalField())] # ComplexField(PREC))]
+    poles = [a for a,_ in Z.denominator(s).roots(s,ring=QQ)] # ComplexField(PREC))]
     poles.sort(key=lambda z:z.real())
 
     D = {

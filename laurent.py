@@ -1,4 +1,4 @@
-from sage.all import *
+from sage.all import QQ, FractionField, Factorization, vector
 
 from .convex import RationalSet, dual_cone_as_polyhedron, PositiveOrthant
 from . import util
