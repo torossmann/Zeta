@@ -1,6 +1,7 @@
 import os
 
-from sage.all import *
+from sage.all import SR
+from sage.decorate.parallel import fork, parallel
 
 from abc import ABCMeta, abstractmethod
 from contextlib import closing
@@ -73,7 +74,7 @@ class GeneralZetaProcessor:
             good = 0
             while unprocessed:
                 datum = unprocessed.pop()
-                logger.info('POP [#unprocessed = %2d, #regular = %d]' % (len(unprocessed)+1,len(regular)))
+                logger.info('POP [#unprocessed = %2d, #regular = %d]' % (len(unprocessed) + 1, len(regular)))
 
                 datum = datum.simplify()
 
@@ -98,7 +99,6 @@ class GeneralZetaProcessor:
                         unprocessed.append(B)
                         cnt += 1
                     logger.info('%s performed. Pushed %d new cases.' % (name, cnt))
-                    
                 try:
                     chops = list(datum.reduce(preemptive=True))
                 except ReductionError:
@@ -130,6 +130,7 @@ class GeneralZetaProcessor:
 
     def optimise(self):
         pass
+
 
 class TopologicalZetaProcessor(GeneralZetaProcessor):
     __metaclass__ = ABCMeta
@@ -165,10 +166,9 @@ class TopologicalZetaProcessor(GeneralZetaProcessor):
                                 Q.add(S)
                     logger.info('Evaluator #%d finished.' % k)
 
-
                 logger.info('Launching %d evaluators.' % common.ncpus)
                 if not common.debug:
-                    ET = sage.parallel.decorate.parallel(p_iter='fork', ncpus=common.ncpus)(fun)
+                    ET = parallel(p_iter='fork', ncpus=common.ncpus)(fun)
                     for (arg, ret) in ET(list(range(common.ncpus))):
                         if ret == 'NO DATA':
                             raise RuntimeError('A parallel process died.')
@@ -189,6 +189,7 @@ class TopologicalZetaProcessor(GeneralZetaProcessor):
                     for Q in surfsums:
                         Q.close()
 
+
 class LocalZetaProcessor(GeneralZetaProcessor):
     __metaclass__ = ABCMeta
 
@@ -196,8 +197,8 @@ class LocalZetaProcessor(GeneralZetaProcessor):
     def padically_evaluate_regular(self, datum):
         pass
 
-    #def purge_denominator(self, denom):
-    #    return denom
+    # def purge_denominator(self, denom):
+    #     return denom
 
     # def degree_bound_in_t(self):
     #     """Returns an upper bound in 't' for the degree of a generic local zeta function.
@@ -232,7 +233,7 @@ class LocalZetaProcessor(GeneralZetaProcessor):
                             return True
 
                     if common.plumber and not common.debug:
-                        fun = sage.parallel.decorate.fork(fun)
+                        fun = fork(fun)
 
                     for i in range(k, len(regular), common.ncpus):
                         e = fun(i)
@@ -243,7 +244,7 @@ class LocalZetaProcessor(GeneralZetaProcessor):
                 logger.info('Launching %d evaluators.' % common.ncpus)
 
                 if not common.debug:
-                    ET = sage.parallel.decorate.parallel(p_iter='fork', ncpus=common.ncpus)(evaluate)
+                    ET = parallel(p_iter='fork', ncpus=common.ncpus)(evaluate)
                     for (arg, ret) in ET(list(range(common.ncpus))):
                         if ret == 'NO DATA':
                             raise RuntimeError('A parallel process died.')
@@ -260,7 +261,7 @@ class LocalZetaProcessor(GeneralZetaProcessor):
 
                 if common.addmany_dispatcher != 'symbolic':
                     denom = CyclotomicRationalFunction.common_denominator(itertools.chain.from_iterable(DiskList(f) for f in eval_filenames))
-                    logger.info('Degree of denominator in (t,q): (%d,%d)'  % (-denom.degree(0), -denom.degree(1)))
+                    logger.info('Degree of denominator in (t,q): (%d,%d)' % (-denom.degree(0), -denom.degree(1)))
                 else:
                     denom = None
 
@@ -297,6 +298,6 @@ class LocalZetaProcessor(GeneralZetaProcessor):
                     res = res.factor() if res else res
                 elif res:
                     fac = res.factor()
-                    res = SR(fac.unit()) * SR.prod(SR(a)**i for a,i in fac)
+                    res = SR(fac.unit()) * SR.prod(SR(a)**i for a, i in fac)
                 logger.info('All done.')
                 return res
