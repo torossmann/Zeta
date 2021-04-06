@@ -1,7 +1,7 @@
 import os
 
 from sage.all import SR
-from sage.decorate.parallel import fork, parallel
+from sage.parallel.decorate import fork, parallel
 
 from abc import ABCMeta, abstractmethod
 from contextlib import closing
