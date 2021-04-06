@@ -1,7 +1,9 @@
 """Cyclotomic rational functions.
 """
 
-from sage.all import *
+from sage.all import (ZZ, QQ, SR, Infinity, FractionField, vector,
+                      zero_vector, prod, PolynomialRing, identity_matrix,
+                      gcd, divisors, matrix)
 
 import itertools
 
@@ -80,7 +82,7 @@ class CyclotomicRationalFunction:
                 return K.zero()
 
             variables = [K.coerce(x) for x in self.variables]
-            exp = lambda v: K.prod(x**e for (x,e) in zip(variables, v))
+            exp = lambda v: K.prod(x**e for (x, e) in zip(variables, v))
             return K.product(
                 evaluate_polynomial(self.polynomial, variables),
                 exp(self.exponents[0]) / K.prod(K.one()-exp(e) for e in self.exponents[1:])
@@ -125,7 +127,7 @@ class CyclotomicRationalFunction:
 
         Q = R.base_ring()
         return R.prod([R.coerce(Q.one()/Q(self.polynomial)), exp(z), res])
-   
+
     def triangulate(self):
         """Produce a generator yielding 'simplicial' cyclotomic rational
         functions (-> polynomials are constant) that sum up to 'self'.
@@ -145,7 +147,7 @@ class CyclotomicRationalFunction:
         # 'self' is normalised iff
         # (1) the first non-zero entry in each ray in the denominator is positive and
         # (2) gcd(self.polynomial) == 1; over SR, ignore (2).
-        
+
         if self._known_to_be_normalised or not self:
             return self
 
@@ -180,7 +182,7 @@ class CyclotomicRationalFunction:
         """
 
         if self.ring.base_ring() == SR:
-            return self # again, few things work in the symbolic case
+            return self  # again, few things work in the symbolic case
         elif self._known_to_be_reduced:
             return self
         elif self.polynomial.is_constant():
@@ -193,7 +195,7 @@ class CyclotomicRationalFunction:
         k = len(alpha)-1
 
         exp = lambda v: self.ring.prod(self.variables[i] ** v[i] for i in range(self.nvars)) # only non-negative entries allowed here!
-        
+
         for i in range(1, k + 1):
             beta = alpha[i]
 
@@ -279,7 +281,7 @@ class CyclotomicRationalFunction:
             exps.extend([v] * m)
             _, vneg = split_vector(v)
             a += m * vneg
-            
+
         return CyclotomicRationalFunction(ring.one(), [-a] + exps) # .normalise()
 
     def __neg__(self):
@@ -344,7 +346,7 @@ class CyclotomicRationalFunction:
         exp = lambda v: ring.prod(self.variables[i] ** v[i] for i in range(self.nvars))
         h = ring.summation(
             ring.prod( [ exp(w), exp(alpha_pos[0]) ] + [ exp(beta_neg[j])  -  exp(beta_pos[j]) for j in J ] + [ Q.polynomial ] ),
-            ring.prod( [ exp(v),  exp(beta_pos[0]) ] + [ exp(alpha_neg[i]) - exp(alpha_pos[i]) for i in I ] + [ other.polynomial ] )
+            ring.prod( [ exp(v), exp(beta_pos[0]) ] + [ exp(alpha_neg[i]) - exp(alpha_pos[i]) for i in I ] + [ other.polynomial ] )
             )
         exponents = [-v-w] + alpha[1:] + [beta[j] for j in J]
         return CyclotomicRationalFunction(h, exponents).normalise()
@@ -390,7 +392,7 @@ class CyclotomicRationalFunction:
         exp = lambda a: K.prod(x ** e for (x,e) in zip(new_variables,a))
         h = evaluate_polynomial(self.polynomial, [exp(v) for v in Phi])
         return CyclotomicRationalFunction.from_laurent_polynomial(h, new_ring, exponents=beta)
-        
+
     @classmethod
     def from_laurent_polynomial(cls, f, ring, exponents=None):
         # NOTE:
@@ -412,7 +414,7 @@ class CyclotomicRationalFunction:
         lc = den.lc()
         num = f.numerator() / lc
         den = den / lc
-        assert num == ring(num) 
+        assert num == ring(num)
         assert (den == 1) or den.is_monomial()
         try:
             return cls(num, [-monomial_log(den) + exponents[0]] + exponents[1:])
@@ -445,5 +447,4 @@ class CyclotomicRationalFunction:
                 num = -num # Encode (y[i]-1) as (-1) * (1-y[i]).
                 exponents.append(e[i])
 
-        return cls.from_laurent_polynomial(num({ a: ring.gen(i) for i,a in enumerate(y)}), ring, exponents=exponents)
-
+        return cls.from_laurent_polynomial(num({a: ring.gen(i) for i, a in enumerate(y)}), ring, exponents=exponents)
