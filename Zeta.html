@@ -42,9 +42,9 @@ Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a
 Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
 ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 
-                                                                Version 0.4.1
+                                                                Version 0.4.2
                              by
-                                 <a href="http://www.maths.nuigalway.ie/~rossmann">Tobias Rossmann</a>
+                                 <a href="https://torossmann.github.io">Tobias Rossmann</a>
   
 </pre>
 <hr>
@@ -68,6 +68,7 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <li><a href="#average">Average sizes of kernels</a></li>
 <li><a href="#conjugacy">Conjugacy class zeta functions</a></li>
 <li><a href="#graphs">Graphs and hypergraphs</a></li>
+<li><a href="#cntpts">Counting rational points</a></li>
 </ol>
 </li>
 <li><a href="#db">The built-in database of examples</a>
@@ -125,7 +126,7 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <!--====================================================================-->
 <p>This software requires a recent version
   of <a href="http://sagemath.org/">SageMath</a>.
-  Zeta 0.4.1 has been developed for Sage 9.2
+  Zeta 0.4.2 has been developed for Sage 9.2
   on 64-bit Linux (x86_64) systems; other platforms and versions of
   Sage may or may not work as expected.</p>
 <!--====================================================================-->
@@ -140,7 +141,7 @@ ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 <p>
 On a 64-bit Linux (x86_64) system, the easiest way to
 install Zeta is to download 
-<a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/Zeta-0.4.1-x86_64.tar.bz2">
+<a href="https://torossmann.github.io/Zeta/Zeta-0.4.2-x86_64.tar.bz2">
 this archive</a> and extract it into some directory,
 <code>$DIR</code> say.
 This will create a subdirectory
@@ -171,7 +172,7 @@ shell. Alternatively, for a temporary solution, after executing</p>
   <code>scdd_gmp</code> (part
   of <a href="https://www.inf.ethz.ch/personal/fukudak/cdd_home/">cddlib</a>
   and also bundled with LattE integrale),
-  and <a href="http://www.home.uni-osnabrueck.de/wbruns/normaliz/"><code>normaliz</code></a>.
+  and <a href="https://www.normaliz.uni-osnabrueck.de/"><code>normaliz</code></a>.
   These programs should be placed inside <code>$DIR/Zeta/bin</code>; copies are
   included with the archive linked to above.</p>
 <p>Zeta requires a patched version of <code>count</code>.
@@ -180,7 +181,7 @@ shell. Alternatively, for a temporary solution, after executing</p>
   file <code>maple.cpp</code> included with Zeta.
   In order to compile the patched version of LattE integrale 1.7.3 from
   scratch, you may want to
-  use <a href="http://www.maths.nuigalway.ie/~rossmann/Zeta/latte-integrale-1.7.3-for-Zeta.tar">this
+  use <a href="https://torossmann.github.io//Zeta/latte-integrale-1.7.3-for-Zeta.tar">this
   modified version</a> 
   (26M) of the LattE integrale 1.7.3 bundle.
 </p> 
@@ -705,6 +706,50 @@ sage: Zeta.local_zeta_function(A, 'inc')
 <hr>
 
 <!--====================================================================-->
+<h2 id="cntpts">3.9. Counting rational points</h2>
+<!--====================================================================-->
+
+<p>The methods for determining generic local zeta functions described
+  in <a href="#pad">Section 3.3</a> rely on functionality for symbolically
+  enumerating rational points of affine schemes.
+  As it might be of independent interest, this functionality can also be
+  invoked directly as follows.</p>
+
+<p>Let $f_1,\dotsc,f_r\in \mathbf Z[X_1,\dotsc,X_n]$ and let $Y$ be the
+  subscheme of $\mathbf A^n_{\mathbf Z}$ defined by $f_1 = \dotsb = f_r = 0$.
+  (The polynomials $f_1,\dotsc,f_r$ can actually have coefficients in $\mathbf Q$
+  in which case $Y$ is to be replaced by the corresponding subscheme of affine $n$-space over
+  $\mathbf Z[1/N]$ for a suitable integer $N \geqslant 1$.)</p>
+
+<p>A call <code>Zeta.count_points([</code>$f_1,\dotsc,f_r$<code>])</code>
+  constructs a symbolic expression, <code>E</code> say, involving (in general) symbols <code>q</code>
+  and <code>sc_i</code> (see <a href="#symbolic">Section 3.3.2</a>).
+  For almost all primes $p$ and all powers $q$ of $p$, the number $\# Y(\mathbf F_q)$ is
+  then obtained from <code>E</code> by replacing <code>q</code> by $q$ and
+  each <code>sc_i</code> by the number of $\mathbf F_q$-rational points of
+  <code>Zeta.common.symbolic_count_varieties[i]</code>, a subscheme of a torus.
+  We note that <code>Zeta.count_points</code> does not keep track of
+  the finitely many exceptional primes that need to be excluded.</p>
+
+<p>
+  The function <code>Zeta.count_points</code> attempts to detect when
+  $\#Y(\mathbf F_q)$ is polynomial in $q$ (excluding small
+  characteristics). Of course, these attempts are not guaranteed to succeed.
+</p>
+
+<!--====================================================================-->
+<h4>Example</h4>
+<!--====================================================================-->
+<hr>
+<pre><code>sage: R = PolynomialRing(QQ,'x', 8)
+sage: R.inject_variables(verbose=False)
+sage: F = [x2*x3^2 - x1*x3*x4 + 1/4*x0*x4^2, x0*x5*x6 + 2*x1*x3*x7 - x0*x4*x7]
+sage: Zeta.count_points(F)
+(q^3 + 2*q^2 - 3*q + 1)*(2*q - 1)*q^2
+</code></pre>
+<hr>
+
+<!--====================================================================-->
 <h1 id="db">4. The built-in database of examples</h1>
 <!--====================================================================-->
 <!--====================================================================-->
@@ -819,7 +864,7 @@ roots, ...)</li>
 <p>and writes these to an optional file-like object (which defaults
 to <code>stdout</code>). The output of this function is also
 available for <a href=
-"http://www.maths.nuigalway.ie/~rossmann/Zeta/topzetas.txt">download</a>.</p>
+"https://torossmann.github.io//Zeta/topzetas.txt">download</a>.</p>
 <p>By the <b>essential value</b> of a rational function $Z\in
 \mathbf Q(s)$ at a point $w\in \mathbf C$, we mean the value of
 $Z/(s-w)^m$ at $s = w$, where $m$ is the order of $Z$ at $w$;
@@ -963,21 +1008,21 @@ computations recorded in the database (<a href="#db">Section&nbsp;4</a>).</p>
 <a href="http://dx.doi.org/10.1112/plms/pdv012"><i>Computing topological zeta functions of groups, algebras, and
 modules, I</i></a>. Proc. Lond. Math. Soc. (3) 110 (2015), no. 5,
 1099&ndash;1134.
-(<a href="http://www.maths.nuigalway.ie/~rossmann/files/topzeta.pdf">preprint</a>)
+(<a href="https://torossmann.github.io//files/topzeta.pdf">preprint</a>)
 </p>
 <p><a name="topzeta2" id="topzeta2">[2]</a> T. Rossmann.
 <a href="http://dx.doi.org/10.1016/j.jalgebra.2015.07.039"><i>Computing topological zeta functions of groups, algebras, and
 modules, II</i></a>.
 J.&nbsp;Algebra 444 (2015), 567&ndash;605.
-(<a href="http://www.maths.nuigalway.ie/~rossmann/files/topzeta2.pdf">preprint</a>)</p>
+(<a href="https://torossmann.github.io//files/topzeta2.pdf">preprint</a>)</p>
 <p><a name="unipotent" id="unipotent">[3]</a> T. Rossmann.
 <a href="http://dx.doi.org/10.1016/j.jalgebra.2015.09.050"><i>Topological representation zeta functions of unipotent groups</i></a>.
 J.&nbsp;Algebra 448 (2016), 210&ndash;237.
-(<a href="http://www.maths.nuigalway.ie/~rossmann/files/unipotent.pdf">preprint</a>)</p>
+(<a href="https://torossmann.github.io//files/unipotent.pdf">preprint</a>)</p>
 <p><a name="padzeta" id="padzeta">[4]</a> T. Rossmann.
 <a href="https://doi.org/10.1090/tran/7361"><i>Computing local zeta functions of groups, algebras, and modules</i></a>.
     Trans. Amer. Math. Soc. 370 (2018), no. 7, 4841&ndash;4879.
-    (<a href="http://www.maths.nuigalway.ie/~rossmann/files/padzeta.pdf">preprint</a>)</p>
+    (<a href="https://torossmann.github.io//files/padzeta.pdf">preprint</a>)</p>
 
 <p><a name="ask" id="ask">[5]</a> T. Rossmann.
   <a href="https://doi.org/10.1112/plms.12159"><i>The average size of the kernel of a matrix and orbits of linear groups</i></a>.
@@ -988,11 +1033,12 @@ J.&nbsp;Algebra 448 (2016), 210&ndash;237.
   <a href="https://doi.org/10.1016/j.jpaa.2019.106203"><i>The average size of
     the kernel of a matrix and orbits of linear groups, II: duality</i></a>.
   J. Pure Appl. Algebra. (2019).
-  (<a href="http://www.maths.nuigalway.ie/~rossmann/files/ask2.pdf">preprint</a>)</p>
+  (<a href="https://torossmann.github.io//files/ask2.pdf">preprint</a>)</p>
 <p><a name="cico" id="cico">[7]</a> T. Rossmann and C. Voll.
   <i>Groups, graphs, and hypergraphs: average sizes of kernels of generic
-  matrices with support constraints</i>.
-  (<a href="http://www.maths.nuigalway.ie/~rossmann/files/cico.pdf">preprint</a>)</p>
+    matrices with support constraints</i>.
+  To appear in  Mem. Amer. Math. Soc.
+  (<a href="https://torossmann.github.io//files/cico.pdf">preprint</a>)</p>
 
 <!--====================================================================-->
 <h1 id="funding">7. Funding</h1>
@@ -1021,7 +1067,7 @@ J.&nbsp;Algebra 448 (2016), 210&ndash;237.
 <!--====================================================================-->
 <h1 id="license">9. License</h1>
 <!--====================================================================-->
-<p>Copyright &copy; 2014, 2015, 2016, 2017, 2019, 2021 Tobias Rossmann.</p>
+<p>Copyright &copy; 2014, 2015, 2016, 2017, 2019, 2021, 2022 Tobias Rossmann.</p>
 <p>Zeta is free software: you can redistribute it and/or modify it
 under the terms of the <a href=
 "http://www.gnu.org/copyleft/gpl.html">GNU General Public
@@ -1039,7 +1085,7 @@ License along with Zeta. If not, see <a href=
 <h1 id="contact">10. Contact</h1>
 <!--====================================================================-->
 <blockquote>Tobias Rossmann<br>
-School of Mathematics, Statistics and Applied Mathematics<br>
+School of Mathematical and Statistical Sciences<br>
 National University of Ireland, Galway<br>
 Galway<br>
 H91 TK33<br>
@@ -1047,6 +1093,6 @@ Ireland<br>
 <br>
 E-mail: tobias.rossmann (at) nuigalway.ie</blockquote>
 <hr>
-<small>last modified: 4 February 2021</small>
+<small>last modified: 1 February 2022</small>
 </body>
 </html>

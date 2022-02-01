@@ -1,7 +1,7 @@
 #
 # Zeta.
 #
-# Copyright 2014, 2015, 2016, 2017, 2019, 2021 Tobias Rossmann.
+# Copyright 2014, 2015, 2016, 2017, 2019, 2021, 2022 Tobias Rossmann.
 #
 # This package is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by the
@@ -17,8 +17,8 @@
 # this software; if not, see <http://www.gnu.org/licenses>.
 #
 
-__version__ = '0.4.1'
-__date__ = 'February 2021'
+__version__ = '0.4.2'
+__date__ = 'February 2022'
 
 print('Loading...')
 
@@ -36,6 +36,7 @@ from .cico import CicoProcessor, IncidenceProcessor
 from .algebra import Algebra, Subalgebra
 from .abstract import ReductionError
 from .toric import ToricDatum
+from .torus import count_points
 from .util import create_logger, E
 from .common import symbolic_count_varieties
 

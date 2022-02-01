@@ -2,9 +2,9 @@
 Closed subvarieties of algebraic tori.
 """
 
-from sage.all import SR, QQ, PolynomialRing, var, gcd, factorial
+from sage.all import GF, SR, QQ, PolynomialRing, Subsets, var, gcd, factorial
 
-from itertools import chain
+from itertools import product, chain
 from .convex import mixed_volume
 from .util import (normalise_laurent_polynomial, squarefree_part,
                    terms_of_polynomial, cached_simple_method, split_off_torus)
@@ -413,3 +413,46 @@ class SubvarietyOfTorus:
 
 def Torus(n):
     return SubvarietyOfTorus(torus_dim=n)
+
+def count_points(polynomials, q=None, torus_only=False):
+    """
+    Given a collection of polynomials over QQ, attempt to symbolically
+    count simultaneous roots over GF(q) in 'generic characteristic'.
+    The output may depend on `symbolic count varieties'.
+    """
+
+    if not polynomials:
+        raise ValueError('need a non-empty collection of polynomials')
+
+    R = polynomials[0].parent()
+    n = R.ngens()
+
+    if q:
+        K = PolynomialRing(GF(q), n, R.gens())
+        G = [K(f) for f in polynomials]
+        total = 0
+
+        for x in product(GF(q) if not torus_only else [x for x in GF(q) if x],
+                         repeat=n):
+            if all(g(x) == 0 for g in G):
+                total += 1
+        return total
+    else:
+        q = var('q')
+        old_symbolic = common.symbolic
+
+        common.symbolic = True
+        try:
+            if torus_only:
+                total = SubvarietyOfTorus(polynomials).count()
+            else:
+                total = SR(0)
+                for S in Subsets(R.gens()):
+                    D = {str(x): R(0) if x in S else x for x in R.gens()}
+                    G = [f(**D) for f in polynomials]
+                    V = SubvarietyOfTorus(G)
+                    cnt = V.count() / (q - 1)**len(S)
+                    total += cnt
+        finally:
+            common.symbolic = old_symbolic
+        return total.simplify_full().factor() if total else total
