@@ -1,7 +1,7 @@
-"""Utility functions that don't belong anywhere else.
 """
-
-from sage.all import Integer, vector, prod, QQ, Matrix, FractionField, gcd, ZZ, matrix, PolynomialRing, Subsets, SR, lcm, identity_matrix
+Utility functions that don't belong anywhere else.
+"""
+from sage.all import Integer, vector, prod, QQ, Matrix, gcd, ZZ, matrix, PolynomialRing, Subsets, SR, lcm, identity_matrix
 from itertools import chain
 from distutils.spawn import find_executable
 from pkg_resources import resource_exists, resource_filename
@@ -57,7 +57,7 @@ def monomial_log(g):
 
 
 def monomial_exp(R, v):
-    return prod(map(lambda w: w[0]**w[1], zip(R.gens(), list(v))))
+    return prod(w0**w1 for w0, w1 in zip(R.gens(), v))
 
 
 def split_vector(v):
@@ -88,6 +88,7 @@ def initial_form_by_direction(f, y):
     weights = [monomial_log(m) * y for m in mon]
     w = min(weights)
     return sum(coeff[k] * mon[k] for k in range(len(mon)) if weights[k] == w)
+
 
 def is_subpolynomial(f, a):
     """Test if `a' is a sum of terms of the polynomial `f'.
@@ -121,7 +122,7 @@ def normalise_laurent_polynomial(f):
     # First make sure, 'f' really is one.
 
     R = f.parent()
-    K = FractionField(R)
+    K = R.fraction_field()
     f = K(f)
     if K.ngens() == 0:
         return R(0) if not f else R(1)
@@ -174,7 +175,7 @@ def my_find_executable(name):
     try:
         if resource_exists('Zeta', s):
             return os.path.abspath(resource_filename('Zeta', s))
-    except:
+    except OSError:
         pass
 
     filename = find_executable(name)
@@ -222,7 +223,7 @@ def split_off_torus(F):
     _, _, T = matrix(ZZ, submodule.basis_matrix()).smith_form()
     d = submodule.rank()
     Rd = PolynomialRing(QQ, d, R.gens()[:d])
-    K = FractionField(R)
+    K = R.fraction_field()
     return [Rd(normalise_laurent_polynomial(K(f([monomial_exp(K, e)
                                                  for e in T.rows()]))))
             for f in F], d, T
@@ -265,10 +266,9 @@ def common_overring(R, S):
         return R
     elif S.has_coerce_map_from(R):
         return S
-    else:
-        combined_vars = list(set(R.base_ring().gens()) | set(S.base_ring().gens()))
-        K = FractionField(PolynomialRing(QQ, len(combined_vars), combined_vars))
-        return PolynomialRing(K, R.gens())
+    combined_vars = list(set(R.base_ring().gens()) | set(S.base_ring().gens()))
+    K = PolynomialRing(QQ, combined_vars).fraction_field()
+    return PolynomialRing(K, R.gens())
 
 
 def is_block_diagonal_matrix(A, blocks):
@@ -308,7 +308,7 @@ def symbolic_to_polynomial(f, vars):
     R = PolynomialRing(SR, len(vars), vars)
     res = R.zero()
     for coeff, alpha in zip(poly.coefficients(), poly.exponents()):
-        if type(alpha) == int:
+        if isinstance(alpha, int):
             # Once again, univariate polynomials receive special treatment
             # in Sage.
             alpha = [alpha]
@@ -471,7 +471,7 @@ def graph_to_generic_matrix(G, t):
     return B
 
 
-def is_matrix(A):
+def is_matrix(A) -> bool:
     try:
         A.matrix_space
         return True
@@ -479,7 +479,7 @@ def is_matrix(A):
         return False
 
 
-def is_polynomial(f):
+def is_polynomial(f) -> bool:
     try:
         f.content_ideal
         return True
@@ -487,7 +487,7 @@ def is_polynomial(f):
         return False
 
 
-def is_list(L):
+def is_list(L) -> bool:
     try:
         L.append
         return True
@@ -495,7 +495,7 @@ def is_list(L):
         return False
 
 
-def is_graph(G):
+def is_graph(G) -> bool:
     try:
         G.num_verts
         return True
@@ -503,7 +503,7 @@ def is_graph(G):
         return False
 
 
-def is_string(s):
+def is_string(s) -> bool:
     try:
         s.capitalize
         return True
