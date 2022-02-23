@@ -179,7 +179,7 @@ class IgusaDatum(ZetaDatum):
         if not naughty:
             return float(0), children
 
-        return float(sum(t.weight() for t in naughty))/ (self.weight() * len(naughty)), \
+        return float(sum(t.weight() for t in naughty)) / (self.weight() * len(naughty)), \
             naughty + [c for c in children if c not in naughty]
 
     def reduce(self, preemptive):
@@ -343,6 +343,7 @@ class IgusaProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
             polytopes = []
 
             id = identity_matrix(ZZ, len(I))
+
             def vectorise(k, vec):
                 w = id[I.index(k)] if k in I else vector(ZZ,len(I))
                 return vector(ZZ, list(vec) + list(w))
@@ -382,6 +383,7 @@ class IgusaProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
             polytopes = []
 
             id = identity_matrix(ZZ, len(I))
+
             def vectorise(k, vec):
                 w = id[I.index(k)] if k in I else vector(ZZ,len(I))
                 return vector(ZZ, list(vec) + list(w))
@@ -442,22 +444,20 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
         else:
             F = FractionField(self.ring.base_ring())
 
-        two_u = matrix(F, self.R).rank() # self.R.rank()
+        two_u = matrix(F, self.R).rank()  # self.R.rank()
         if two_u % 2:
             raise RuntimeError('this is odd')
         self.u = two_u // 2
-        self.v = matrix(F, self.S).rank() # self.S.rank()
+        self.v = matrix(F, self.S).rank()  # self.S.rank()
 
         if not d:
             return
 
-        F = [
-            LaurentIdeal(
-                gens = [LaurentPolynomial(_sqrt(f)) for f in principal_minors(self.R, 2*j)],
-                RS = self.RS,
-                normalise = True)
-            for j in range(0, self.u+1)
-        ]
+        F = [LaurentIdeal(
+                gens=[LaurentPolynomial(_sqrt(f)) for f in principal_minors(self.R, 2*j)],
+                RS=self.RS,
+                normalise=True)
+            for j in range(self.u + 1)]
 
         G = [LaurentIdeal(gens=[LaurentPolynomial(g) for g in self.S.minors(j)],
                           RS=self.RS,
@@ -542,6 +542,7 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
 
             I = list(I)
             id = identity_matrix(ZZ, len(I))
+
             def vectorise(first, k, vec):
                 w = id[I.index(k)] if k in I else vector(ZZ,len(I))
                 return vector(ZZ, [first] + list(vec) + list(w))

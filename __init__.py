@@ -73,7 +73,9 @@ def __check_sage_bugs():
     if y.series(x) != (z.series(x))(z=y):
         __SERIES_BUG = True
 
+
 __check_sage_bugs()
+
 
 class Profile:
     SAVE_MEMORY = 1
@@ -179,16 +181,16 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
     if util.is_graph(L):
         if L.has_multiple_edges():
             raise ValueError('parallel edges not supported')
-        
+
     if (util.is_matrix(L) or util.is_graph(L)) and objects not in ['ask', 'cico', 'adj', 'inc']:
         raise ValueError('invalid objects specified for given input')
-    
+
     elif util.is_polynomial(L):
         # Turn a polynomial into a list of polynomials.
         L = [L]
     elif util.is_string(L):
         L = lookup(L)
-        
+
     if objects in ['poly', 'igusa']:
         proc = IgusaProcessor(*L)
     elif objects in ['subalgebras', 'ideals']:
@@ -221,7 +223,7 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
             A = cico.incidence_matrix_from_multiplicities(n, mu)
         except:
             A = Matrix(L)
-        
+
         proc = IncidenceProcessor(A)
     elif objects == 'orbits':
         # NOTE: we don't currently check if L really spans a matrix Lie algebra
@@ -281,11 +283,13 @@ def do(type, L, objects='subalgebras', filename=None, save_memory=None, symbolic
             f.write(str(Z))
     return Z
 
+
 topological_zeta_function = partial(do, 'topological', strategy=Strategy.NORMAL, verbose=False)
 local_zeta_function = partial(do, 'p-adic', strategy=Strategy.NORMAL, verbose=False)
 
 top = partial(do, 'topological')
 pad = partial(do, 'p-adic')
+
 
 def check(name, objects='subalgebras', type='p-adic', **kwargs):
     L = lookup(name)
@@ -294,15 +298,15 @@ def check(name, objects='subalgebras', type='p-adic', **kwargs):
         raise RuntimeError('zeta function not contained in database')
 
     Z = do(type, L, objects, **kwargs)
-   
+
     if Z != W:
         print('Computed: ', Z)
         print('Database: ', W)
         raise RuntimeError('computed zeta function of %s differs from entry in the database' % name)
 
     print()
-    print('Algebra #%d' % lookup(name,'id'))
-    print('Names: %s' % ', '.join(lookup(name,'names')))
+    print('Algebra #%d' % lookup(name, 'id'))
+    print('Names: %s' % ', '.join(lookup(name, 'names')))
     print('Objects:', objects)
     print('Type:', type)
     print('Zeta:', Z)
@@ -341,31 +345,32 @@ if __SERIES_BUG:
 expansions. Computations of p-adic zeta functions are therefore
 unavailable. Try using a different version of Sage such as 7.4.""")
 
-    
+
 def banner():
     return """
-ZZZZZZZZZZZZZZZZZZZ                           tttt                           
-Z:::::::::::::::::Z                        ttt:::t                           
-Z:::::::::::::::::Z                        t:::::t                           
-Z:::ZZZZZZZZ:::::Z                         t:::::t                           
-ZZZZZ     Z:::::Z     eeeeeeeeeeee   ttttttt:::::ttttttt     aaaaaaaaaaaaa   
-        Z:::::Z     ee::::::::::::ee t:::::::::::::::::t     a::::::::::::a  
-       Z:::::Z     e::::::eeeee:::::et:::::::::::::::::t     aaaaaaaaa:::::a 
-      Z:::::Z     e::::::e     e:::::tttttt:::::::tttttt              a::::a 
-     Z:::::Z      e:::::::eeeee::::::e     t:::::t             aaaaaaa:::::a 
-    Z:::::Z       e:::::::::::::::::e      t:::::t           aa::::::::::::a 
-   Z:::::Z        e::::::eeeeeeeeeee       t:::::t          a::::aaaa::::::a 
-ZZZ:::::Z     ZZZZe:::::::e                t:::::t    ttttta::::a    a:::::a 
-Z::::::ZZZZZZZZ:::e::::::::e               t::::::tttt:::::a::::a    a:::::a 
-Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a 
+ZZZZZZZZZZZZZZZZZZZ                           tttt
+Z:::::::::::::::::Z                        ttt:::t
+Z:::::::::::::::::Z                        t:::::t
+Z:::ZZZZZZZZ:::::Z                         t:::::t
+ZZZZZ     Z:::::Z     eeeeeeeeeeee   ttttttt:::::ttttttt     aaaaaaaaaaaaa
+        Z:::::Z     ee::::::::::::ee t:::::::::::::::::t     a::::::::::::a
+       Z:::::Z     e::::::eeeee:::::et:::::::::::::::::t     aaaaaaaaa:::::a
+      Z:::::Z     e::::::e     e:::::tttttt:::::::tttttt              a::::a
+     Z:::::Z      e:::::::eeeee::::::e     t:::::t             aaaaaaa:::::a
+    Z:::::Z       e:::::::::::::::::e      t:::::t           aa::::::::::::a
+   Z:::::Z        e::::::eeeeeeeeeee       t:::::t          a::::aaaa::::::a
+ZZZ:::::Z     ZZZZe:::::::e                t:::::t    ttttta::::a    a:::::a
+Z::::::ZZZZZZZZ:::e::::::::e               t::::::tttt:::::a::::a    a:::::a
+Z:::::::::::::::::Ze::::::::eeeeeeee       tt::::::::::::::a:::::aaaa::::::a
 Z:::::::::::::::::Z ee:::::::::::::e         tt:::::::::::tta::::::::::aa:::a
 ZZZZZZZZZZZZZZZZZZZ   eeeeeeeeeeeeee           ttttttttttt   aaaaaaaaaa  aaaa
 
 %s
 %s
-                             by   
+                             by
                                  Tobias Rossmann
 """ % ('{:>77}'.format('VERSION ' + __version__),
        '{:>77}'.format('Released: ' + __date__))
+
 
 print(banner())

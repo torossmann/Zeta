@@ -40,14 +40,15 @@ class Algebra:
             if simple_basis:
                 self.rank = A.ncols()
                 e = MatrixSpace(QQ, self.rank).identity_matrix().rows()
-                def f(i,j):
-                    if abs(A[i,j]) > self.rank:
+
+                def f(i, j):
+                    if abs(A[i, j]) > self.rank:
                         raise TypeError('Matrix entries out of range')
-                    if   A[i,j] == 0:
+                    if A[i, j] == 0:
                         return (Integer(0) * e[0])
-                    elif A[i,j] > 0:
+                    elif A[i, j] > 0:
                         return (e[A[i,j]-1])
-                    elif A[i,j] < 0:
+                    elif A[i, j] < 0:
                         return (-e[-A[i,j]-1])
                 self.table = [ [ f(i,j) for j in range(self.rank) ] for i in range(self.rank) ]
             elif bilinear:
@@ -243,8 +244,11 @@ class Algebra:
         A = Matrix(QQ, A)
         if not A.is_invertible():
             raise TypeError('The argument must be an invertible matrix over QQ.')
-        return Algebra( table = [[ self.multiply( A[i], A[j] ) * A.inverse() for j in range(self.rank) ] for i in range(self.rank)],
-                        operators = [ A * op * A**(-1) for op in self.operators ], blocks = self.blocks )
+        return Algebra(table=[[self.multiply(A[i], A[j]) * A.inverse()
+                               for j in range(self.rank)]
+                              for i in range(self.rank)],
+                       operators=[A * op * A**(-1) for op in self.operators],
+                       blocks=self.blocks)
 
     @cached_simple_method
     def _Lie_centre(self):
@@ -384,6 +388,7 @@ class Algebra:
         Madj = M.adjugate()
         E = identity_matrix(R, self.rank)
         li = []
+
         def insert_components(w):
             for rhs in w:
                 if rhs.is_zero():
@@ -562,18 +567,18 @@ def tensor_with_duals(L):
         raise NotImplementedError
 
     n = L.rank
-    zero  = n * [0]
+    zero = n * [0]
 
-    def f(i,j):
+    def f(i, j):
         if i < n and j < n:
             return list(L.table[i][j]) + zero
         elif i < n and j >= n:
-            return zero + list(L.table[i][j-n])
+            return zero + list(L.table[i][j - n])
         elif i >= n and j < n:
-            return zero + list(L.table[i-n][j])
+            return zero + list(L.table[i - n][j])
         else:
             return zero + zero
-    return Algebra(table=[[f(i,j) for j in range(2*n)] for i in range(2*n)])
+    return Algebra(table=[[f(i, j) for j in range(2*n)] for i in range(2*n)])
 
 
 def tensor_with_3duals(L):
@@ -581,9 +586,9 @@ def tensor_with_3duals(L):
         raise NotImplementedError
 
     n = L.rank
-    zero  = n * [0]
+    zero = n * [0]
 
-    def f(i,j):
+    def f(i, j):
         if i < n and j < n:
             return list(L.table[i][j]) + zero + zero
         elif i < n and n <= j < 2*n:
