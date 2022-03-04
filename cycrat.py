@@ -343,12 +343,13 @@ class CyclotomicRationalFunction:
         v = alpha_neg[0] + sum(beta_neg[j] for j in J)
         w = beta_neg[0] + sum(alpha_neg[i] for i in I)
 
-        exp = lambda v: ring.prod(self.variables[i] ** v[i] for i in range(self.nvars))
+        exp = lambda v: ring.prod(self.variables[i]**v[i]
+                                  for i in range(self.nvars))
         h = ring.summation(
-            ring.prod( [ exp(w), exp(alpha_pos[0]) ] + [ exp(beta_neg[j])  -  exp(beta_pos[j]) for j in J ] + [ Q.polynomial ] ),
+            ring.prod( [ exp(w), exp(alpha_pos[0]) ] + [ exp(beta_neg[j]) - exp(beta_pos[j]) for j in J ] + [ Q.polynomial ] ),
             ring.prod( [ exp(v), exp(beta_pos[0]) ] + [ exp(alpha_neg[i]) - exp(alpha_pos[i]) for i in I ] + [ other.polynomial ] )
             )
-        exponents = [-v-w] + alpha[1:] + [beta[j] for j in J]
+        exponents = [-v - w] + alpha[1:] + [beta[j] for j in J]
         return CyclotomicRationalFunction(h, exponents).normalise()
 
     def __sub__(self, other):

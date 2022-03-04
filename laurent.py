@@ -242,12 +242,12 @@ class LaurentIdeal:
             f = initials[j] - tj/ti * initials[i]
             initials[j] = f if f else None
         return LaurentIdeal(gens=gens, initials=initials, RS=RS, ring=self.ring)
-        
+
     def is_balanced(self):
         return not any(init is None for init in self.initials)
-    
+
     def balance(self, strategy='min'):
-        # NOTE 1: repeated application might be necessary 
+        # NOTE 1: repeated application might be necessary
         # NOTE 2: shares code with ToricDatum.balance
         if self.is_balanced():
             yield self
@@ -266,4 +266,5 @@ class LaurentIdeal:
 
     def __str__(self):
         return 'LaurentIdeal(gens=%s, initials=%s)' % (self.gens, self.initials)
+
     __repr__ = __str__

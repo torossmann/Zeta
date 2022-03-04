@@ -43,7 +43,7 @@ INTSIZE = 4
 
 if array('i').itemsize != INTSIZE:
     raise SURFError('Need sizeof(int) == 4')
-    
+
 class SURFSum:
     def __init__(self, filename, compresslevel=9):
         self._filename = filename
@@ -181,7 +181,7 @@ def _crunch_py(argv):
                     raw = gzfile.read(INTSIZE)
                 except EOFError:
                     break
-                
+
                 if not raw:
                     break  # EOF
 
@@ -196,7 +196,7 @@ def _crunch_py(argv):
                 if len(raw) != chunk_size * INTSIZE:
                     return 1
                 chunk = [QQ(v) for v in struct.unpack('i' * chunk_size, raw)]
-                
+
                 for i in range(nvalues):
                     results[i] += chunk[0] / prod(chunk[j] * values[i] - chunk[j + 1] for j in range(1, chunk_size, 2))
 
@@ -305,7 +305,6 @@ def multicrunch(surfsums, varname=None):
         else:
             for k in range(len(res_names)):
                 fun(k)
-                
 
         #
         # Collect results
