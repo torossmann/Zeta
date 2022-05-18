@@ -284,6 +284,8 @@ class SMURF:
                 return vector(ZZ, s.strip().split())
 
             with TemporaryList() as summands, open(ratfun, 'r') as f:
+                # from functools import reduce 
+                # print(reduce(lambda x, y: x + y, f.readlines(), ''))
                 while True:
                     line = f.readline()
                     if not line:
@@ -293,34 +295,66 @@ class SMURF:
                     if not line:
                         continue  # ignore empty lines
 
-                    # The modified version of 'count' produces files in the following format:
-                    # {
-                    # scalar
-                    # nterms
-                    # a[1] ... a[n]  \
-                    # ...            | nterms many
-                    # c[1] ... c[n]  /
-                    # nrays
-                    # u[1] ... u[n] \
-                    # ...           | nrays many
-                    # w[1] ... w[n] /
-                    # }
+                    # It seems that LattE 1.7.6 does not produce the same
+                    # format. Instead it seems to write the rational functions
+                    # directly. The new form is 
+                    # <polynomial_1>/((1 - x^a1)* ... *(1 - x^an))
+                    #  + <polynomial_2>/((1 - x^b1)* ... *(1 - x^bn))
                     # ...
-                    # This corresponds to scalar * sum(X^a + ... + X^c) / (1 - X^u) / ... / (1-X^w).
+                    # 
+                    # The variables are written like 'x[0]*x[1]', and the
+                    # monomials x^ai are written out as a Laurent monomial.
+                    #                                       Josh Maglione 
+                    #                                       18 May 2022
+                    #   
+                    # # The modified version of 'count' produces files in the following format:
+                    # # {
+                    # # scalar
+                    # # nterms
+                    # # a[1] ... a[n]  \
+                    # # ...            | nterms many
+                    # # c[1] ... c[n]  /
+                    # # nrays
+                    # # u[1] ... u[n] \
+                    # # ...           | nrays many
+                    # # w[1] ... w[n] /
+                    # # }
+                    # # ...
+                    # # This corresponds to scalar * sum(X^a + ... + X^c) / (1 - X^u) / ... / (1-X^w).
 
-                    if line != "{":
-                        raise RuntimeError('Invalid LattE output (BEGIN) [line=%s]' % line)
+                    # if line != "{":
+                    #     raise RuntimeError('Invalid LattE output (BEGIN) [line=%s]' % line)
 
-                    scalar = ring(f.readline())
-                    nterms = int(f.readline())
-                    numerator = K(scalar) * K.sum(exp(vectorise_string(f.readline())) for _ in range(nterms))
+                    # scalar = ring(f.readline())
+                    # nterms = int(f.readline())
+                    # numerator = K(scalar) * K.sum(exp(vectorise_string(f.readline())) for _ in range(nterms))
 
-                    nrays = int(f.readline())
-                    exponents = [vector(ZZ, len(variables))] + [vectorise_string(f.readline()) for _ in range(nrays)]
-                    line = f.readline().strip()
+                    # nrays = int(f.readline())
+                    # exponents = [vector(ZZ, len(variables))] + [vectorise_string(f.readline()) for _ in range(nrays)]
+                    # line = f.readline().strip()
 
-                    if line != '}':
-                        raise RuntimeError('Invalid Latte output (END)')
+                    # if line != '}':
+                    #     raise RuntimeError('Invalid Latte output (END)')
+
+                    # We do some basic string manipulation, only resorting to
+                    # symbolic manipulation when most convenient (for degrees).
+                    rat_str = line.replace('[', '').replace(']', '')
+                    num_str, den_str = rat_str.split('/')
+                    factors_str = den_str.split('*(')
+                    exponents = [vector(ZZ, len(variables))]
+                    for fact in factors_str:
+                        if ")^" in fact:
+                            i = fact.index(")^")
+                            f_exp = int(fact[i+2:])
+                            lpoly = SR(fact[:i].replace(')', '').replace('(', '')) 
+                        else:
+                            f_exp = 1
+                            lpoly = SR(fact.replace(')', '').replace('(', ''))
+                        lmono = -lpoly + 1 # Assuming form 1 - X^a
+                        v = vector(ZZ, [lmono.degree(x) for x in ring.gens()])
+                        for _ in range(f_exp):
+                            exponents.append(v) 
+                    numerator = K(num_str)
 
                     summands.append(CyclotomicRationalFunction.from_laurent_polynomial(numerator, ring, exponents))
 
