@@ -105,6 +105,7 @@ class LaurentPolynomial:
     def __repr__(self):
         return repr(self.f)
 
+
 class LaurentIdeal:
     # Ideals of the rings of RS-integer Laurent polynomials.
     # Detects units, removes zeros and multiples.

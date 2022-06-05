@@ -365,8 +365,7 @@ class CyclotomicRationalFunction:
         return CyclotomicRationalFunction(
             ring.product(ring(self.polynomial), ring(other.polynomial)),
             [self.exponents[0] + other.exponents[0]] +
-             self.exponents[1:] + other.exponents[1:]
-            )
+            self.exponents[1:] + other.exponents[1:])
 
     def monomial_substitution(self, new_ring, Phi):
         """
@@ -377,7 +376,6 @@ class CyclotomicRationalFunction:
         'Phi' should be an n by m matrix over ZZ, the rows of
         which encode the substitution x_i |--> z^Phi[i].
         """
-
         Phi = matrix(ZZ, Phi)
         m = new_ring.ngens()
         if (self.nvars != Phi.nrows()) or (m != Phi.ncols()):
@@ -390,7 +388,7 @@ class CyclotomicRationalFunction:
 
         K = FractionField(new_ring)
         new_variables = [K.coerce(x) for x in new_ring.gens()]
-        exp = lambda a: K.prod(x ** e for (x,e) in zip(new_variables,a))
+        exp = lambda a: K.prod(x**e for x, e in zip(new_variables, a))
         h = evaluate_polynomial(self.polynomial, [exp(v) for v in Phi])
         return CyclotomicRationalFunction.from_laurent_polynomial(h, new_ring, exponents=beta)
 
