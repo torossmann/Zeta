@@ -155,10 +155,10 @@ def TemporaryDirectory(delete=True):
 
 
 @contextlib.contextmanager
-def cd(dir):
+def cd(dirname):
     oldcwd = os.getcwd()
     try:
-        os.chdir(dir)
+        os.chdir(dirname)
         yield
     finally:
         os.chdir(oldcwd)
@@ -446,7 +446,7 @@ def subspace_structured_basis(U, V):
     indices_remaining = list(range(rem, rem + A[3].dimension()))
 
     return (Matrix(U.base_ring(), [x for a in A for x in a.basis()]),
-        [indices_U, indices_V, indices_U_cap_V, indices_remaining])
+            [indices_U, indices_V, indices_U_cap_V, indices_remaining])
 
 
 def graph_to_generic_matrix(G, t):

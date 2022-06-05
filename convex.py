@@ -13,6 +13,7 @@ from . import common
 from .util import monomial_exp, cached_simple_method
 from . import triangulate
 
+
 def vertex_by_direction(polytope, y):
     """Return one (!) vertex on the face of 'polytope' defined by
     minimising 'y'.
@@ -22,6 +23,7 @@ def vertex_by_direction(polytope, y):
     vertices = polytope.vertices_matrix().transpose()
     w = min(x * y for x in vertices)
     return next(x for x in vertices if x * y == w)
+
 
 def conify_polyhedron(P):
     """

@@ -68,8 +68,10 @@ from .reps import IgusaProcessor
 # The following is supposed to detect a bug which is present (at least)
 # in version 7.5.1 and 7.6 of Sage.
 __SERIES_BUG = False
+
+
 def __check_sage_bugs():
-    x,y,z = var('x y z')
+    x, y, z = var('x y z')
     if y.series(x) != (z.series(x))(z=y):
         __SERIES_BUG = True
 
@@ -81,6 +83,7 @@ class Profile:
     SAVE_MEMORY = 1
     NORMAL = 2
     SPEED = 3
+
 
 def lookup(entry=None, what=None, type='topological'):
     if entry is None:
@@ -109,6 +112,7 @@ def lookup(entry=None, what=None, type='topological'):
     else:
         raise ValueError('unknown type')
     return D[i].get(what, None)
+
 
 def zeta_function(type, L, objects=None, optimise_basis=False,
                   ncpus=None, alt_ncpus=None, strategy=None, profile=None, verbose=False,
@@ -254,6 +258,7 @@ def zeta_function(type, L, objects=None, optimise_basis=False,
             for ((m,_),level) in zip(loglevels,oldlevels):
                 m.setLevel(level)
 
+
 def do(type, L, objects='subalgebras', filename=None, save_memory=None, symbolic=False, **kwargs):
     if save_memory is None:
         save_memory = bool(type == 'p-adic')
@@ -341,9 +346,9 @@ if not common.count:
 
 if __SERIES_BUG:
     logger.critical(
-            """This version of Sage may compute incorrect symbolic power series
-expansions. Computations of p-adic zeta functions are therefore
-unavailable. Try using a different version of Sage such as 7.4.""")
+        """This version of Sage may compute incorrect symbolic power series
+        expansions. Computations of p-adic zeta functions are therefore
+        unavailable. Try using a different version of Sage such as 7.4.""")
 
 
 def banner():

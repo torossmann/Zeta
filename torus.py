@@ -204,7 +204,7 @@ class SubvarietyOfTorus:
                                 if mu(r) < mu(F[i]):
                                     logger.debug('(reduce) Replacing F[%d]=%s by %s' % (i, F[i], r))
                                     logger.debug('(reduce) Using term %s of F[%d] and term %s of F[%d]'
-                                         % (ti, i, tj, j))
+                                                 % (ti, i, tj, j))
                                     F[i] = r if not r else normalise_laurent_polynomial(r / r.lc())
                                     changed = True
                                     reduction_performed = True
@@ -413,6 +413,7 @@ class SubvarietyOfTorus:
 
 def Torus(n):
     return SubvarietyOfTorus(torus_dim=n)
+
 
 def count_points(polynomials, q=None, torus_only=False):
     """
