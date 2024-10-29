@@ -100,16 +100,16 @@ cdef class HashAdder:
                     break
 
     cdef values(HashAdder self):
-        return iter(self.D.itervalues())
+        return iter(self.D.values())
 
     def keys(HashAdder self):
-        return iter(self.D.iterkeys())
+        return iter(self.D.keys())
 
     cdef items(HashAdder self):
-        return iter(self.D.iteritems())
+        return iter(self.D.items())
 
     def __iter__(HashAdder self):
-        return iter(self.D.iterkeys())
+        return iter(self.D.keys())
 
 # A term a * x^e[0] * y^e[1] for a = n/d (n > 0) is stored using exactly 36
 # bytes as follows:
@@ -322,18 +322,18 @@ cdef class DictPolynomial:
                 
     def __iadd__(DictPolynomial self, DictPolynomial other):
         cdef uint32_t key
-        for key, value in iter(other.D.iteritems()):
+        for key, value in other.D.items():
             self._add_key_value(key, value)
         return self
    
     def polynomial(DictPolynomial self, ring):
         cdef uint32_t key
         y, x = ring.gens()  # at some point, I decided to order variables as (t,q) instead of (q,t)
-        return ring.sum(value.eval() * y**(key & 0xffff) * x**(key >> 16) for key, value in iter(self.D.iteritems()))
+        return ring.sum(value.eval() * y**(key & 0xffff) * x**(key >> 16) for key, value in self.D.items())
 
     def dump(DictPolynomial self, file):
         cdef uint32_t key
-        for key, value in iter(self.D.iteritems()):
+        for key, value in self.D.items():
             file.write(struct.pack('=I', key) + value.dumps())
 
     def _terms_from_file(DictPolynomial self, file):
