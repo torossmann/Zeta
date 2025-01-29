@@ -509,3 +509,24 @@ def is_string(s) -> bool:
         return True
     except AttributeError:
         return False
+
+
+# For a graph G, and recent version of SageMath 10.x, G.multiple_edges() does
+# not consider parallel loops.
+
+def has_multiple_edges(G) -> bool:
+    A = G.adjacency_matrix()
+    n = G.num_verts()
+    return any(A[i,j] > 1 for i in range(n) for j in range(i,n))
+
+
+def multiple_edges(G):
+    n = G.num_verts()
+    A = G.adjacency_matrix()
+    V = G.vertices()
+    res = []
+    for e in G.edge_iterator():
+        i, j = V.index(e[0]), V.index(e[1])
+        if A[i, j] > 1:
+            res.append(e)
+    return res

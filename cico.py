@@ -6,7 +6,7 @@ from copy import copy
 from .abstract import ZetaDatum, ReductionError, TopologicalZetaProcessor, LocalZetaProcessor
 from .convex import conify_polyhedron, RationalSet, PositiveOrthant
 from .reps import padically_evaluate_monomial_integral
-from .util import create_logger, cached_simple_method
+from .util import create_logger, cached_simple_method, has_multiple_edges, multiple_edges
 
 logger = create_logger(__name__)
 
@@ -141,7 +141,7 @@ class CicoDatum(ZetaDatum):
 
     @cached_simple_method
     def has_multiple_edges(self):
-        return self.sage_graph().has_multiple_edges()
+        return has_multiple_edges(self.sage_graph())
 
     @cached_simple_method
     def is_balanced(self):
@@ -158,7 +158,7 @@ class CicoDatum(ZetaDatum):
 
         # Pick a social connected component C.
         G = self.sage_graph()
-        C = next(C for C in G.connected_components() if len(C) > 1)
+        C = next(C for C in G.connected_components(sort=False) if len(C) > 1)
         component_edge_indices = [i for i, (u, v) in enumerate(self.edges)
                                   if u in C]
 
@@ -259,7 +259,7 @@ class CicoDatum(ZetaDatum):
         # These are taken care of in `balance'.
 
         G = self.sage_graph()
-        E = G.multiple_edges()
+        E = multiple_edges(G)
 
         if not E:
             yield self
