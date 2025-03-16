@@ -12,7 +12,9 @@ logger = create_logger(__name__)
 
 
 def other_vertex(edge, u):
-    # Return the vertex of edge apart from u if there is one or u if it is a loop.
+    """
+    Return the vertex of edge apart from u if there is one or u if it is a loop.
+    """
     return edge[1] if u == edge[0] else edge[0]
 
 
@@ -20,8 +22,8 @@ def make_edge(u, v):
     return tuple(sorted([u, v]))
 
 
-def belongs_to_dual(vector, cone):
-    return all(vector * ray >= 0 for ray in cone.rays())
+def belongs_to_dual(vect, cone):
+    return all(vect * ray >= 0 for ray in cone.rays())
 
 
 def sort_edges(edges):
@@ -420,7 +422,7 @@ class IncidenceDatum(ZetaDatum):
     def is_regular(self):
         return True
 
-    def reduce(self, preemptyive=False):
+    def reduce(self, preemptive=False):
         raise ReductionError('not needed')
 
     def __repr__(self):
