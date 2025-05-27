@@ -390,7 +390,7 @@ def _addmany_numerator(filenames, denominator, *args):
                 except TypeError:
                     raise ValueError('this example is not uniform: use the symbolic dispatcher instead')
                 num, den = a_in_K.numerator(), a_in_K.denominator()
-                res += DictPolynomial(R.product(num, common_denominator // den))
+                res += DictPolynomial(R.prod([num, common_denominator // den]))
             with Open(os.path.join(tmpdir, 'res%d' % k), 'wb') as f:
                 res.dump(f)
             logger.info('Summator #%d finished.' % k)
@@ -418,7 +418,7 @@ def _addmany_numerator(filenames, denominator, *args):
                         a_in_K =  K.coerce(all_crfs[indices[j]].evaluate())
 
                         num, den = a_in_K.numerator(), a_in_K.denominator()
-                        dp += DictPolynomial(R.product(num, common_denominator // den))
+                        dp += DictPolynomial(R.prod([num, common_denominator // den]))
 
                     with Open(os.path.join(tmpdir, 'fun%d' % k), 'wb') as f:
                         dp.dump(f)

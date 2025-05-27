@@ -120,7 +120,7 @@ class CyclotomicRationalFunction:
         for c in self.exponents[1:]:
             a, b = split_vector(c)
             z -= b
-            res = R.product(res, exp(b) - exp(a))
+            res = R.prod([res, exp(b) - exp(a)])
 
         if any(e < 0 for e in z):
             raise ValueError('not a polynomial')
@@ -363,7 +363,7 @@ class CyclotomicRationalFunction:
         ring = common_overring(self.ring, other.ring)
 
         return CyclotomicRationalFunction(
-            ring.product(ring(self.polynomial), ring(other.polynomial)),
+            ring.prod([ring(self.polynomial), ring(other.polynomial)]),
             [self.exponents[0] + other.exponents[0]] +
              self.exponents[1:] + other.exponents[1:]
             )
