@@ -254,6 +254,7 @@ def _sqrt(f):
         raise ValueError('not a square')
     return f.parent(prod(a**(e//2) for (a,e) in li))
 
+
 def evaluate_monomial_integral(mode, RS, polytopes, substitution, dims=None):
     # NOTE:
     # The name is slightly misleading since the factor (1-1/q)**RS.ambient_dim
@@ -404,6 +405,7 @@ class IgusaProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
     def __repr__(self):
         return 'Igusa processor. IDEAL: %s' % self.ideal
 
+
 class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
     def __init__(self, arg):
         try:
@@ -453,11 +455,11 @@ class RepresentationProcessor(TopologicalZetaProcessor, LocalZetaProcessor):
         if not d:
             return
 
-        F = [LaurentIdeal(
-                gens=[LaurentPolynomial(_sqrt(f)) for f in principal_minors(self.R, 2*j)],
-                RS=self.RS,
-                normalise=True)
-            for j in range(self.u + 1)]
+        F = [LaurentIdeal(gens=[LaurentPolynomial(_sqrt(f))
+                                for f in principal_minors(self.R, 2 * j)],
+                          RS=self.RS,
+                          normalise=True)
+             for j in range(self.u + 1)]
 
         G = [LaurentIdeal(gens=[LaurentPolynomial(g) for g in self.S.minors(j)],
                           RS=self.RS,

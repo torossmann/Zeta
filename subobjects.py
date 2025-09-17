@@ -108,7 +108,7 @@ def greedy_chopper(T, indices, depth_bound=None, use_first_improvement=False):
     try:
         for i, j in itertools.combinations(indices, 2):
             for ti, tj in itertools.product(terms_of_polynomial(T.initials[i]),
-                                           terms_of_polynomial(T.initials[j])):
+                                            terms_of_polynomial(T.initials[j])):
                 val, sol = cand(i, j, ti, tj)
                 if val < optval:
                     optval, optsol = val, sol

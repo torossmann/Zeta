@@ -1,5 +1,5 @@
 from sage.all import (Integer, SR, QQ, var, Infinity, preparse, factorial,
-                      diagonal_matrix, ComplexField, FractionField)
+                      diagonal_matrix, ComplexField)
 from .util import E
 from collections import namedtuple
 from .algebra import Algebra, tensor_with_duals
@@ -1084,7 +1084,7 @@ _raw = [
     # 2,5,7
     ######################################################################
 
-     ZR( ['g(257A)'],
+    ZR( ['g(257A)'],
         {
             'simple_basis': True,
             'matrix': [ [ 0, 3, 6, 0, 7, 0, 0 ],
@@ -1099,7 +1099,7 @@ _raw = [
         '3/((7*s - 9)*(5*s - 8)*(3*s - 5)*(s - 1)*(s - 2)*(s - 3)*s)',
         ),
 
-     ZR( ['g(257B)'],
+    ZR( ['g(257B)'],
         {
             'simple_basis': True,
             'matrix': [ [ 0, 3, 6, 0, 7, 0, 0 ],
@@ -1115,7 +1115,7 @@ _raw = [
          '1/36*(2976*s^4 - 13674*s^3 + 23344*s^2 - 17515*s + 4860)/((7*s - 9)*(5*s - 6)*(4*s - 5)^2*(3*s - 4)*(2*s - 3)*(s - 1)^2*(s - 2)*(s - 3)*s)',
         ),
 
-     ZR( ['g(257C)'],
+    ZR( ['g(257C)'],
         {
             'simple_basis': True,
             'matrix': [ [ 0, 3, 6, 0, 0, 0, 0 ],
@@ -1235,7 +1235,7 @@ _raw = [
         None
         ),
 
-     ZR( ['g(257K)'],
+    ZR( ['g(257K)'],
         {
             'simple_basis': True,
             'matrix': [ [ 0, 5, 0, 0, 6, 0, 0 ],
@@ -3854,7 +3854,7 @@ _raw = [
     ZR( ['F(3,3)'],
         {
             'rank': 14,
-            'table': { #            1  2  3    4  5  6  7  8  9 10 11
+            'table': {  #           1  2  3    4  5  6  7  8  9 10 11
                 (0,1): (0, 0, 0,   -1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0),
                 (1,0): (0, 0, 0,   +1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0),
                 (0,2): (0, 0, 0,    0,+1, 0,   0, 0, 0, 0, 0, 0, 0, 0),
@@ -6368,10 +6368,12 @@ def _complex2str(z):
         s += '%.4f*i' % b.real()
     return s if s else '0.0000'
 
+
 def _order(Z,a):
     R = QQ['s']
     s = R.gen(0)
     return R(Z.numerator()).valuation(s-a) - R(Z.denominator()).valuation(s-a)
+
 
 def _topzeta_invariants(Z, objects=None):
     PREC = 8192
@@ -6395,8 +6397,8 @@ def _topzeta_invariants(Z, objects=None):
         'order@zero':_order(Z,0),
         'ess. value@zero': _essval_at_zero(Z),
         'ess. value@infinity': _essval_at_infinity(Z),
-        'complex roots': ', '.join([_complex2str(a) for a in roots]) if roots else 'None',
-        'poles': ', '.join([_complex2str(a) for a in poles]) if poles else 'None',
+        'complex roots': ', '.join(_complex2str(a) for a in roots) if roots else 'None',
+        'poles': ', '.join(_complex2str(a) for a in poles) if poles else 'None',
         '_roots': roots,
         '_poles': poles,
         }
@@ -6410,16 +6412,17 @@ def _topzeta_invariants(Z, objects=None):
         fixed_points = [a for a,_ in f.roots(s,ring=ComplexField(PREC))]
         fixed_points.sort(key=lambda z:z.real())
 
-        D['fixed points'] = ', '.join([_complex2str(a) for a in fixed_points]) if fixed_points else 'None'
+        D['fixed points'] = ', '.join(_complex2str(a) for a in fixed_points) if fixed_points else 'None'
         D['_fixed_points'] = fixed_points
 
         # g = (Z-1).factor().numerator(s)
         # roots_zetam1 = [a for a,_ in g.roots(s,ring=ComplexField(PREC))]
         # roots_zetam1.sort(key=lambda z:z.real())
 
-        # D['roots(zeta-1)'] = ', '.join([_complex2str(a) for a in roots_zetam1]) if roots_zetam1 else 'None'
+        # D['roots(zeta-1)'] = ', '.join(_complex2str(a) for a in roots_zetam1) if roots_zetam1 else 'None'
         # D['_roots(zeta-1)'] = roots_zetam1
     return D
+
 
 def _algebra_invariants(L):
     D = {
@@ -6454,6 +6457,7 @@ def _algebra_invariants(L):
                 R,S = L._SV_commutator_matrices()
                 D['(u,v)'] = (R.rank()/Integer(2), S.rank())
     return D
+
 
 def printall(file=None, subalgebras=True, ideals=True, reps=True):
     TAB = 8 * ' '

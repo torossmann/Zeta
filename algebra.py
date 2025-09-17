@@ -301,23 +301,22 @@ class Algebra:
         # TODO: rewrite using _commutator_matrix_* below
 
         A, dims = self._SV_adjusted_basis()
-        d = dims[1] + dims[2] # = dim of commutator ideal
-        r = dims[0] + dims[1] # = codim of centre
+        d = dims[1] + dims[2]  # = dim of commutator ideal
+        r = dims[0] + dims[1]  # = codim of centre
         ring = PolynomialRing(QQ, 'y', d)
         y = vector(ring, ring.gens())
 
         T = self.change_basis(A)
 
         a = dims[0]
-        b = a + d # [a,b) == indices of basis vectors of the commutator ideal
+        b = a + d  # [a,b) == indices of basis vectors of the commutator ideal
 
         R = Matrix(ring, [
-            [ y * vector(ring, [T.table[i][j][k] for k in range(a,b)])
-              for j in range(r) ]
-            for i in range(r) ]
-                  )
+            [y * vector(ring, [T.table[i][j][k] for k in range(a, b)])
+             for j in range(r)]
+            for i in range(r)])
         # get last dims[1] columns
-        S = (R.transpose()[r-dims[1]:r]).transpose()
+        S = (R.transpose()[r - dims[1]:r]).transpose()
         return R, S
 
     def _commutator_matrix_by_coordinates(self, domain=None, codomain=None):
@@ -421,8 +420,8 @@ class Algebra:
             if rhs.is_zero():
                 continue
             g = gcd(lhs, rhs)
-            rhs = rhs//g
-            lhs = lhs//g
+            rhs = rhs // g
+            lhs = lhs // g
             if lhs.is_constant():
                 continue
             mon, coeff = rhs.monomials(), rhs.coefficients()
@@ -437,9 +436,8 @@ class Algebra:
                 cc.append(cand)
         cc.sort()
         T = ToricDatum(ring=R, integrand=integrand, cc=cc,
-                               initials=None,
-                               polyhedron=PositiveOrthant(R.ngens())
-                               )
+                       initials=None,
+                       polyhedron=PositiveOrthant(R.ngens()))
         return T.simplify() if T.weight() < common._simplify_bound else T
 
     def find_good_basis(self, objects='subalgebras', name='x'):
@@ -499,6 +497,7 @@ class Algebra:
 
     def __repr__(self):
         return '%s(**%s)' % (self.__class__, self.__dict__)
+
 
 class Subalgebra(Algebra):
     def __init__(self, parent, gens=None, subspace=None):

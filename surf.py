@@ -44,6 +44,7 @@ INTSIZE = 4
 if array('i').itemsize != INTSIZE:
     raise SURFError('Need sizeof(int) == 4')
 
+
 class SURFSum:
     def __init__(self, filename, compresslevel=9):
         self._filename = filename
@@ -158,6 +159,7 @@ def _crunch_c(args):
         argv[i] = str_to_bytes(args[i])
     return common.libcrunch.crunch(argc, argv)
 
+
 # A python implementation of `crunch.c'.
 def _crunch_py(argv):
     if len(argv) < 4:
@@ -209,6 +211,7 @@ def _crunch_py(argv):
 def crunch(args):
     return _crunch_c(args) if common.libcrunch else _crunch_py(args)
 
+
 def multicrunch(surfsums, varname=None):
     """
     Given an iterable consisting of SURFSums, compute the rational function
@@ -244,7 +247,8 @@ def multicrunch(surfsums, varname=None):
         Q._file.flush()
 
     logger.info('Combined size of data files: %s' %
-         readable_filesize(sum(os.path.getsize(Q._filename) for Q in surfsums)))
+                readable_filesize(sum(os.path.getsize(Q._filename)
+                                      for Q in surfsums)))
     logger.info('Number of critical points: %d' % len(critical))
     logger.info('Degree of candidate denominator: %d' % m)
 
