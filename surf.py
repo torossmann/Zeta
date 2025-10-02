@@ -7,7 +7,7 @@ from sage.cpython.string import str_to_bytes
 
 from collections import namedtuple
 from array import array
-from pkg_resources import resource_exists, resource_filename
+# from pkg_resources import resource_exists, resource_filename
 
 import os
 import ctypes
@@ -16,23 +16,24 @@ import struct
 
 from . import common
 
-from .util import create_logger, TemporaryDirectory, readable_filesize
+from .util import create_logger, TemporaryDirectory, readable_filesize, my_find_file
 logger = create_logger(__name__)
 
 #
 # Try to load the C cruncher. If that fails, we'll use a Python implementation.
 #
-try:
-    if resource_exists('Zeta', 'crunch.so'):
-        common.libcrunch = ctypes.CDLL(resource_filename('Zeta', 'crunch.so'))
-except:
-    pass
+_crunch_path = my_find_file('crunch.so')
+
+if _crunch_path:
+    try:
+        common.libcrunch = ctypes.CDLL(_crunch_path)
+    except:
+        pass
 
 # [S]implicial [U]nivariate [R]ational [F]unctions are expressions of the
 # form scalar / prod(rays[i][0]*s - rays[i][1], i=1,...,e).
 
 SURF = namedtuple('SURF', ['scalar', 'rays'])
-
 
 class SURFError(Exception):
     pass

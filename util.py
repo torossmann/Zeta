@@ -4,7 +4,7 @@ Utility functions that don't belong anywhere else.
 from sage.all import Integer, vector, prod, QQ, Matrix, gcd, ZZ, matrix, PolynomialRing, Subsets, SR, lcm, identity_matrix
 from itertools import chain
 from distutils.spawn import find_executable
-from pkg_resources import resource_exists, resource_filename
+from importlib.resources import files, as_file
 
 import os
 import contextlib
@@ -170,16 +170,12 @@ def readable_filesize(size):
                         if size <= 512 * 1024 * 1024 else (size / 1024.0 / 1024.0 / 1024.0, 'GB'))
 
 
-def my_find_executable(name):
-    s = os.path.join('bin', name)
-    try:
-        if resource_exists('Zeta', s):
-            return os.path.abspath(resource_filename('Zeta', s))
-    except OSError:
-        pass
-
-    filename = find_executable(name)
-    return os.path.abspath(filename) if filename else None
+def my_find_file(name, prefix=''):
+    r = files(__package__).joinpath(prefix, name)
+    if not r.is_file():
+        return None
+    with as_file(r) as path:
+        return str(path)
 
 
 def minimal_elements(P, lte):

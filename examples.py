@@ -1,17 +1,16 @@
 from sage.all import (Integer, SR, QQ, var, Infinity, preparse, factorial,
                       diagonal_matrix, ComplexField, FractionField)
-from .util import E
+from .util import E, my_find_file
 from collections import namedtuple
 from .algebra import Algebra, tensor_with_duals
 
 import json
 
-from pkg_resources import resource_exists, resource_filename
-
 __db_filename = 'p-adic-examples.json'
+__db_path = my_find_file(__db_filename)
 
-if resource_exists('Zeta', __db_filename):
-    with open(resource_filename('Zeta', __db_filename),'r') as f:
+if __db_path:
+    with open(__db_path, 'r') as f:
         _padic_raw = json.load(f)
 else:
     _padic_raw = {}

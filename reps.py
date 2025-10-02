@@ -292,7 +292,6 @@ def evaluate_monomial_integral(mode, RS, polytopes, substitution, dims=None):
         else:
             raise ValueError('unknown mode')
 
-
 topologically_evaluate_monomial_integral = functools.partial(evaluate_monomial_integral, 'topological')
 padically_evaluate_monomial_integral = functools.partial(evaluate_monomial_integral, 'p-adic', dims=None)
 

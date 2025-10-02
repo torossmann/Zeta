@@ -8,7 +8,7 @@ from sage.rings.all import CommutativeRing
 
 from . import common
 
-from .util import my_find_executable, TemporaryDirectory, cd, augmented_env
+from .util import my_find_file, TemporaryDirectory, cd, augmented_env
 from .cycrat import CyclotomicRationalFunction
 
 from .tmplist import TemporaryList
@@ -20,8 +20,7 @@ import subprocess
 from .util import create_logger
 logger = create_logger(__name__)
 
-common.count = my_find_executable('count')
-
+common.count = my_find_file('count', prefix='bin')
 
 def NonnegativeCompositions(n, length=None):
     """

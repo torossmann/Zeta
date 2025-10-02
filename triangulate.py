@@ -10,7 +10,7 @@ from collections import namedtuple
 import subprocess
 import os
 
-from .util import TemporaryDirectory, cd, my_find_executable, augmented_env
+from .util import TemporaryDirectory, cd, my_find_file, augmented_env
 
 from .tmplist import TemporaryList
 from .surf import SURF
@@ -18,7 +18,7 @@ from .surf import SURF
 from .util import create_logger
 logger = create_logger(__name__)
 
-common.normaliz = my_find_executable('normaliz')
+common.normaliz = my_find_file('normaliz', prefix='bin')
 
 # A simplicial cone 'sc' can be turned into an honest one
 # via Cone(rays=sc.rays, lattice=ZZ**ambdim, check=False)).
