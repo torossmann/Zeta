@@ -1,5 +1,14 @@
 CC = gcc
-CFLAGS = -O2 -Wall -Wstrict-overflow=5 -s -z defs -shared -fPIC -lc -lgmp -lz
+UNAME_S := $(shell uname -s)
+
+# Platform-specific flags
+ifeq ($(UNAME_S),Darwin)
+    # macOS flags
+    CFLAGS = -O2 -Wall -Wstrict-overflow=5 -fPIC -dynamiclib -lc -lgmp -lz
+else
+    # Linux flags
+    CFLAGS = -O2 -Wall -Wstrict-overflow=5 -s -z defs -shared -fPIC -lc -lgmp -lz
+endif
 
 CCVERSION = $(shell $(CC) --version 2>/dev/null)
 SAGEROOT = $(shell sage --root 2>/dev/null)

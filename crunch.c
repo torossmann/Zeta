@@ -36,7 +36,11 @@ int crunch(int argc, char *argv[])
      /************************************************************************/
      /* Don't suicide just because someone knocks on the door. */
      /************************************************************************/
+     #ifdef SIGPOLL
      signal(SIGPOLL, SIG_IGN);
+     #else
+     signal(SIGIO, SIG_IGN);
+     #endif
 
      /************************************************************************/
      /* Read the values and set up the results. */
